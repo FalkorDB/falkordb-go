@@ -1,10 +1,10 @@
-package redisgraph
+package falkordb
 
 import (
 	"crypto/rand"
 	"fmt"
-	"strings"
 	"strconv"
+	"strings"
 )
 
 // go array to string is [1 2 3] for [1, 2, 3] array
@@ -32,13 +32,13 @@ func strArrayToString(arr []string) string {
 func mapToString(data map[string]interface{}) string {
 	pairsArray := []string{}
 	for k, v := range data {
-		pairsArray = append(pairsArray, k + ": " + ToString(v))
+		pairsArray = append(pairsArray, k+": "+ToString(v))
 	}
 	return "{" + strings.Join(pairsArray, ",") + "}"
 }
 
 func ToString(i interface{}) string {
-	if(i == nil) {
+	if i == nil {
 		return "null"
 	}
 
@@ -91,7 +91,7 @@ func RandomString(n int) string {
 	return string(output)
 }
 
-func BuildParamsHeader(params map[string]interface{}) (string) {
+func BuildParamsHeader(params map[string]interface{}) string {
 	header := "CYPHER "
 	for key, value := range params {
 		header += fmt.Sprintf("%s=%v ", key, ToString(value))

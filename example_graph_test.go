@@ -1,4 +1,4 @@
-package redisgraph_test
+package falkordb_test
 
 import (
 	"crypto/tls"
@@ -8,21 +8,21 @@ import (
 	"log"
 	"os"
 
-	"github.com/RedisGraph/redisgraph-go"
+	"github.com/FalkorDB/falkordb-go"
 	"github.com/gomodule/redigo/redis"
 )
 
 func ExampleGraphNew() {
 	conn, _ := redis.Dial("tcp", "0.0.0.0:6379")
 
-	graph := redisgraph.GraphNew("social", conn)
+	graph := falkordb.GraphNew("social", conn)
 
 	q := "CREATE (w:WorkPlace {name:'RedisLabs'}) RETURN w"
 	res, _ := graph.Query(q)
 
 	res.Next()
 	r := res.Record()
-	w := r.GetByIndex(0).(*redisgraph.Node)
+	w := r.GetByIndex(0).(*falkordb.Node)
 	fmt.Println(w.Labels[0])
 	// Output: WorkPlace
 }
@@ -33,14 +33,14 @@ func ExampleGraphNew_pool() {
 		return redis.Dial("tcp", host)
 	}}
 
-	graph := redisgraph.GraphNew("social", pool.Get())
+	graph := falkordb.GraphNew("social", pool.Get())
 
 	q := "CREATE (w:WorkPlace {name:'RedisLabs'}) RETURN w"
 	res, _ := graph.Query(q)
 
 	res.Next()
 	r := res.Record()
-	w := r.GetByIndex(0).(*redisgraph.Node)
+	w := r.GetByIndex(0).(*falkordb.Node)
 	fmt.Println(w.Labels[0])
 	// Output: WorkPlace
 
@@ -96,25 +96,25 @@ func ExampleGraphNew_tls() {
 		)
 	}}
 
-	graph := redisgraph.GraphNew("social", pool.Get())
+	graph := falkordb.GraphNew("social", pool.Get())
 
 	q := "CREATE (w:WorkPlace {name:'RedisLabs'}) RETURN w"
 	res, _ := graph.Query(q)
 
 	res.Next()
 	r := res.Record()
-	w := r.GetByIndex(0).(*redisgraph.Node)
+	w := r.GetByIndex(0).(*falkordb.Node)
 	fmt.Println(w.Labels[0])
 }
 
 func getConnectionDetails() (host string, password string) {
-	value, exists := os.LookupEnv("REDISGRAPH_TEST_HOST")
+	value, exists := os.LookupEnv("FALKORDB_TEST_HOST")
 	host = "localhost:6379"
 	if exists && value != "" {
 		host = value
 	}
 	password = ""
-	valuePassword, existsPassword := os.LookupEnv("REDISGRAPH_TEST_PASSWORD")
+	valuePassword, existsPassword := os.LookupEnv("FALKORDB_TEST_PASSWORD")
 	if existsPassword && valuePassword != "" {
 		password = valuePassword
 	}

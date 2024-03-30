@@ -1,4 +1,4 @@
-package redisgraph
+package falkordb
 
 import (
 	"os"
@@ -437,7 +437,7 @@ func TestMultiLabelNode(t *testing.T) {
 	assert.Nil(t, err)
 
 	// create a multi label node
-	multiLabelNode := NodeNew([]string{"A","B"}, "n", nil)
+	multiLabelNode := NodeNew([]string{"A", "B"}, "n", nil)
 	graph.AddNode(multiLabelNode)
 	_, err = graph.Commit()
 	assert.Nil(t, err)

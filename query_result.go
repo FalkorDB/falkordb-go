@@ -1,4 +1,4 @@
-package redisgraph
+package falkordb
 
 import (
 	"fmt"
@@ -55,11 +55,11 @@ type QueryResultHeader struct {
 
 // QueryResult represents the results of a query.
 type QueryResult struct {
-	graph              *Graph
-	header             QueryResultHeader
-	results            []*Record
-	statistics         map[string]float64
-	currentRecordIdx   int
+	graph            *Graph
+	header           QueryResultHeader
+	results          []*Record
+	statistics       map[string]float64
+	currentRecordIdx int
 }
 
 func QueryResultNew(g *Graph, response interface{}) (*QueryResult, error) {
@@ -70,7 +70,7 @@ func QueryResultNew(g *Graph, response interface{}) (*QueryResult, error) {
 			column_names: make([]string, 0),
 			column_types: make([]ResultSetColumnTypes, 0),
 		},
-		graph:              g,
+		graph:            g,
 		currentRecordIdx: -1,
 	}
 
