@@ -1,4 +1,4 @@
-package redisgraph
+package falkordb
 
 type Record struct {
 	values	[]interface{}

@@ -1,4 +1,4 @@
-package redisgraph
+package falkordb
 
 import (
 	"fmt"
