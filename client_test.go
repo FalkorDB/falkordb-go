@@ -10,7 +10,7 @@ import (
 var graph Graph
 
 func createGraph() {
-	db, _ := FalkorDBNew("0.0.0.0:6379")
+	db, _ := FalkorDBNew("0.0.0.0:6379", &ConnectionOption{})
 	graph = db.SelectGraph("social")
 	graph.Delete()
 

@@ -7,6 +7,8 @@ import (
 	"fmt"
 	"log"
 	"os"
+
+	"github.com/FalkorDB/falkordb-go"
 )
 
 var (
@@ -65,23 +67,19 @@ func main() {
 	// This should be used only for testing.
 	clientTLSConfig.InsecureSkipVerify = true
 
-	// pool := &redis.Pool{Dial: func() (redis.Conn, error) {
-	// 	return redis.Dial("tcp", *host,
-	// 		redis.DialPassword(*password),
-	// 		redis.DialTLSConfig(clientTLSConfig),
-	// 		redis.DialUseTLS(true),
-	// 		redis.DialTLSSkipVerify(true),
-	// 	)
-	// }}
+	db, _ := falkordb.FalkorDBNew(*host, &falkordb.ConnectionOption{
+		Password:  *password,
+		TLSConfig: clientTLSConfig,
+	})
 
-	// graph := falkordb.GraphNew("social", pool.Get())
+	graph := db.SelectGraph("social")
 
-	// q := "CREATE (w:WorkPlace {name:'RedisLabs'}) RETURN w"
-	// res, _ := graph.Query(q)
+	q := "CREATE (w:WorkPlace {name:'RedisLabs'}) RETURN w"
+	res, _ := graph.Query(q)
 
-	// res.Next()
-	// r := res.Record()
-	// w := r.GetByIndex(0).(*redisgraph.Node)
-	// fmt.Println(w.Labels[0])
+	res.Next()
+	r := res.Record()
+	w := r.GetByIndex(0).(*falkordb.Node)
+	fmt.Println(w.Labels[0])
 	// Output: WorkPlace
 }

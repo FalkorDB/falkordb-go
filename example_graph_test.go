@@ -7,7 +7,7 @@ import (
 )
 
 func ExampleGraphNew() {
-	db, _ := falkordb.FalkorDBNew("0.0.0.0:6379")
+	db, _ := falkordb.FalkorDBNew("0.0.0.0:6379", &falkordb.ConnectionOption{})
 
 	graph := db.SelectGraph("social")
 
