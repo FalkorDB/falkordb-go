@@ -12,11 +12,11 @@ import (
 )
 
 var (
-	tlsCertFile   = flag.String("tls-cert-file", "redis.crt", "A a X.509 certificate to use for authenticating the  server to connected clients, masters or cluster peers. The file should be PEM formatted.")
-	tlsKeyFile    = flag.String("tls-key-file", "redis.key", "A a X.509 privat ekey to use for authenticating the  server to connected clients, masters or cluster peers. The file should be PEM formatted.")
+	tlsCertFile   = flag.String("tls-cert-file", "falkordb.crt", "A a X.509 certificate to use for authenticating the server to connected clients, masters or cluster peers. The file should be PEM formatted.")
+	tlsKeyFile    = flag.String("tls-key-file", "falkordb.key", "A a X.509 privat ekey to use for authenticating the server to connected clients, masters or cluster peers. The file should be PEM formatted.")
 	tlsCaCertFile = flag.String("tls-ca-cert-file", "ca.crt", "A PEM encoded CA's certificate file.")
-	host          = flag.String("host", "127.0.0.1:6379", "Redis host.")
-	password      = flag.String("password", "", "Redis password.")
+	host          = flag.String("host", "127.0.0.1:6379", "FalkorDB host.")
+	password      = flag.String("password", "", "FalkorDB password.")
 )
 
 func exists(filename string) (exists bool) {
@@ -30,7 +30,7 @@ func exists(filename string) (exists bool) {
 }
 
 /*
- * Example of how to establish an SSL connection from your app to the RedisAI Server
+ * Example of how to establish an SSL connection from your app to the FalkorDB Server
  */
 func main() {
 	flag.Parse()
@@ -74,7 +74,7 @@ func main() {
 
 	graph := db.SelectGraph("social")
 
-	q := "CREATE (w:WorkPlace {name:'RedisLabs'}) RETURN w"
+	q := "CREATE (w:WorkPlace {name:'FalkorDB'}) RETURN w"
 	res, _ := graph.Query(q)
 
 	res.Next()

@@ -138,7 +138,7 @@ A simple test suite is provided, and can be run with:
 $ go test
 ```
 
-The tests expect a Redis server with the FalkorDB module loaded to be available at localhost:6379
+The tests expect a FalkorDB server to be available at localhost:6379
 
 ## License
 

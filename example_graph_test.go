@@ -6,12 +6,12 @@ import (
 	"github.com/FalkorDB/falkordb-go"
 )
 
-func ExampleGraphNew() {
+func ExampleSelectGraph() {
 	db, _ := falkordb.FalkorDBNew("0.0.0.0:6379", &falkordb.ConnectionOption{})
 
 	graph := db.SelectGraph("social")
 
-	q := "CREATE (w:WorkPlace {name:'RedisLabs'}) RETURN w"
+	q := "CREATE (w:WorkPlace {name:'FalkorDB'}) RETURN w"
 	res, _ := graph.Query(q)
 
 	res.Next()
@@ -73,7 +73,7 @@ func ExampleGraphNew() {
 
 // 	graph := falkordb.GraphNew("social", pool.Get())
 
-// 	q := "CREATE (w:WorkPlace {name:'RedisLabs'}) RETURN w"
+// 	q := "CREATE (w:WorkPlace {name:'FalkorDB'}) RETURN w"
 // 	res, _ := graph.Query(q)
 
 // 	res.Next()

@@ -108,7 +108,7 @@ func checkQueryResults(t *testing.T, res *QueryResult) {
 }
 
 func TestCreateQuery(t *testing.T) {
-	q := "CREATE (w:WorkPlace {name:'RedisLabs'})"
+	q := "CREATE (w:WorkPlace {name:'FalkorDB'})"
 	res, err := graph.Query(q)
 	if err != nil {
 		t.Error(err)
@@ -134,7 +134,7 @@ func TestCreateQuery(t *testing.T) {
 }
 
 func TestCreateROQueryFailure(t *testing.T) {
-	q := "CREATE (w:WorkPlace {name:'RedisLabs'})"
+	q := "CREATE (w:WorkPlace {name:'FalkorDB'})"
 	_, err := graph.ROQuery(q)
 	assert.NotNil(t, err, "error should not be nil")
 }
