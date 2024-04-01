@@ -121,7 +121,7 @@ Age: 33
 
 ## Running queries with timeouts
 
-Queries can be run with a millisecond-level timeout as described in [the module documentation](https://docs.falkordb.com/configuration.html#timeout). To take advantage of this feature, the `QueryOptions` struct should be used:
+Queries can be run with a millisecond-level timeout as described in [the documentation](https://docs.falkordb.com/configuration.html#timeout). To take advantage of this feature, the `QueryOptions` struct should be used:
 
 ```go
 options := NewQueryOptions().SetTimeout(10) // 10-millisecond timeout
