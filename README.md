@@ -1,26 +1,24 @@
-[![license](https://img.shields.io/github/license/RedisGraph/redisgraph-go.svg)](https://github.com/RedisGraph/redisgraph-go)
-[![CircleCI](https://circleci.com/gh/RedisGraph/redisgraph-go/tree/master.svg?style=svg)](https://circleci.com/gh/RedisGraph/redisgraph-go/tree/master)
-[![GitHub issues](https://img.shields.io/github/release/RedisGraph/redisgraph-go.svg)](https://github.com/RedisGraph/redisgraph-go/releases/latest)
-[![Codecov](https://codecov.io/gh/RedisGraph/redisgraph-go/branch/master/graph/badge.svg)](https://codecov.io/gh/RedisGraph/redisgraph-go)
-[![Go Report Card](https://goreportcard.com/badge/github.com/RedisGraph/redisgraph-go)](https://goreportcard.com/report/github.com/RedisGraph/redisgraph-go)
-[![GoDoc](https://godoc.org/github.com/RedisGraph/redisgraph-go?status.svg)](https://godoc.org/github.com/RedisGraph/redisgraph-go)
+[![license](https://img.shields.io/github/license/FalkorDB/falkordb-go.svg)](https://github.com/FalkorDB/falkordb-go)
+[![GitHub issues](https://img.shields.io/github/release/FalkorDB/falkordb-go.svg)](https://github.com/FalkorDB/falkordb-go/releases/latest)
+[![Codecov](https://codecov.io/gh/FalkorDB/falkordb-go/branch/master/graph/badge.svg)](https://codecov.io/gh/FalkorDB/falkordb-go)
+[![Go Report Card](https://goreportcard.com/badge/github.com/FalkorDB/falkordb-go)](https://goreportcard.com/report/github.com/FalkorDB/falkordb-go)
+[![GoDoc](https://godoc.org/github.com/FalkorDB/falkordb-go?status.svg)](https://godoc.org/github.com/FalkorDB/falkordb-go)
 
-# redisgraph-go
-[![Forum](https://img.shields.io/badge/Forum-RedisGraph-blue)](https://forum.redislabs.com/c/modules/redisgraph)
-[![Discord](https://img.shields.io/discord/697882427875393627?style=flat-square)](https://discord.gg/gWBRT6P)
+# falkordb-go
+[![Discord](https://img.shields.io/discord/1146782921294884966?style=flat-square)](https://discord.gg/6M4QwDXn2w)
 
-`redisgraph-go` is a Golang client for the [RedisGraph](https://oss.redislabs.com/redisgraph/) module. It relies on [`redigo`](https://github.com/gomodule/redigo) for Redis connection management and provides support for RedisGraph's QUERY, EXPLAIN, and DELETE commands.
+`falkordb-go` is a Golang client for the [FalkorDB](https://falkordb.com) database.
 
 ## Installation
 
 Simply do:
 ```sh
-$ go get github.com/redislabs/redisgraph-go
+$ go get github.com/FalkorDB/falkordb-go
 ```
 
 ## Usage
 
-The complete `redisgraph-go` API is documented on [GoDoc](https://godoc.org/github.com/RedisGraph/redisgraph-go).
+The complete `falkordb-go` API is documented on [GoDoc](https://godoc.org/github.com/FalkorDB/falkordb-go).
 
 ```go
 package main
@@ -29,15 +27,13 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/gomodule/redigo/redis"
-	rg "github.com/redislabs/redisgraph-go"
+	rg "github.com/FalkorDB/falkordb-go"
 )
 
 func main() {
-	conn, _ := redis.Dial("tcp", "127.0.0.1:6379")
-	defer conn.Close()
+	db, _ := falkordb.FalkorDBNew("0.0.0.0:6379")
 
-	graph := rg.GraphNew("social", conn)
+	graph := db.SelectGraph("social")
 
 	graph.Delete()
 
@@ -125,7 +121,7 @@ Age: 33
 
 ## Running queries with timeouts
 
-Queries can be run with a millisecond-level timeout as described in [the module documentation](https://oss.redis.com/redisgraph/configuration/#timeout). To take advantage of this feature, the `QueryOptions` struct should be used:
+Queries can be run with a millisecond-level timeout as described in [the module documentation](https://docs.falkordb.com/configuration.html#timeout). To take advantage of this feature, the `QueryOptions` struct should be used:
 
 ```go
 options := NewQueryOptions().SetTimeout(10) // 10-millisecond timeout
@@ -142,8 +138,8 @@ A simple test suite is provided, and can be run with:
 $ go test
 ```
 
-The tests expect a Redis server with the RedisGraph module loaded to be available at localhost:6379
+The tests expect a Redis server with the FalkorDB module loaded to be available at localhost:6379
 
 ## License
 
-redisgraph-go is distributed under the BSD3 license - see [LICENSE](LICENSE)
+falkordb-go is distributed under the BSD3 license - see [LICENSE](LICENSE)
