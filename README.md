@@ -27,11 +27,11 @@ import (
 	"fmt"
 	"os"
 
-	rg "github.com/FalkorDB/falkordb-go"
+	"github.com/FalkorDB/falkordb-go"
 )
 
 func main() {
-	db, _ := falkordb.FalkorDBNew("0.0.0.0:6379")
+	db, _ := falkordb.FalkorDBNew("0.0.0.0:6379", &falkordb.ConnectionOption{})
 
 	graph := db.SelectGraph("social")
 
