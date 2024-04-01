@@ -13,6 +13,11 @@ jobs:
 
   build:
     runs-on: ubuntu-latest
+    services:
+      falkordb:
+        image: falkordb/falkordb:edge
+        ports:
+          - 6379:6379
     steps:
     - uses: actions/checkout@v3
 
