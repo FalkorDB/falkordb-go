@@ -5,12 +5,8 @@ import (
 	"crypto/x509"
 	"flag"
 	"fmt"
-	"io/ioutil"
 	"log"
 	"os"
-
-	"github.com/FalkorDB/falkordb-go"
-	"github.com/gomodule/redigo/redis"
 )
 
 var (
@@ -49,7 +45,7 @@ func main() {
 	}
 
 	// Load CA cert
-	caCert, err := ioutil.ReadFile(*tlsCaCertFile)
+	caCert, err := os.ReadFile(*tlsCaCertFile)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -69,23 +65,23 @@ func main() {
 	// This should be used only for testing.
 	clientTLSConfig.InsecureSkipVerify = true
 
-	pool := &redis.Pool{Dial: func() (redis.Conn, error) {
-		return redis.Dial("tcp", *host,
-			redis.DialPassword(*password),
-			redis.DialTLSConfig(clientTLSConfig),
-			redis.DialUseTLS(true),
-			redis.DialTLSSkipVerify(true),
-		)
-	}}
+	// pool := &redis.Pool{Dial: func() (redis.Conn, error) {
+	// 	return redis.Dial("tcp", *host,
+	// 		redis.DialPassword(*password),
+	// 		redis.DialTLSConfig(clientTLSConfig),
+	// 		redis.DialUseTLS(true),
+	// 		redis.DialTLSSkipVerify(true),
+	// 	)
+	// }}
 
-	graph := redisgraph.GraphNew("social", pool.Get())
+	// graph := falkordb.GraphNew("social", pool.Get())
 
-	q := "CREATE (w:WorkPlace {name:'RedisLabs'}) RETURN w"
-	res, _ := graph.Query(q)
+	// q := "CREATE (w:WorkPlace {name:'RedisLabs'}) RETURN w"
+	// res, _ := graph.Query(q)
 
-	res.Next()
-	r := res.Record()
-	w := r.GetByIndex(0).(*redisgraph.Node)
-	fmt.Println(w.Labels[0])
+	// res.Next()
+	// r := res.Record()
+	// w := r.GetByIndex(0).(*redisgraph.Node)
+	// fmt.Println(w.Labels[0])
 	// Output: WorkPlace
 }
