@@ -5,12 +5,12 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/gomodule/redigo/redis"
+	"github.com/redis/go-redis/v9"
 )
 
 // QueryOptions are a set of additional arguments to be emitted with a query.
 type QueryOptions struct {
-	timeout           int
+	timeout int
 }
 
 // Graph represents a graph, which is a collection of nodes and edges.
@@ -18,7 +18,7 @@ type Graph struct {
 	Id                string
 	Nodes             map[string]*Node
 	Edges             []*Edge
-	Conn              redis.Conn
+	Conn              *redis.Client
 	labels            []string   // List of node labels.
 	relationshipTypes []string   // List of relation types.
 	properties        []string   // List of properties.
@@ -26,7 +26,7 @@ type Graph struct {
 }
 
 // New creates a new graph.
-func GraphNew(Id string, conn redis.Conn) Graph {
+func graphNew(Id string, conn *redis.Client) Graph {
 	return Graph{
 		Id:                Id,
 		Nodes:             make(map[string]*Node, 0),
@@ -69,12 +69,12 @@ func (g *Graph) AddEdge(e *Edge) error {
 
 // ExecutionPlan gets the execution plan for given query.
 func (g *Graph) ExecutionPlan(q string) (string, error) {
-	return redis.String(g.Conn.Do("GRAPH.EXPLAIN", g.Id, q))
+	return g.Conn.Do(ctx, "GRAPH.EXPLAIN", g.Id, q).Text()
 }
 
 // Delete removes the graph.
 func (g *Graph) Delete() error {
-	_, err := g.Conn.Do("GRAPH.DELETE", g.Id)
+	err := g.Conn.Do(ctx, "GRAPH.DELETE", g.Id).Err()
 
 	// clear internal mappings
 	g.labels = g.labels[:0]
@@ -110,7 +110,7 @@ func (g *Graph) Commit() (*QueryResult, error) {
 // NewQueryOptions instantiates a new QueryOptions struct.
 func NewQueryOptions() *QueryOptions {
 	return &QueryOptions{
-		timeout:               -1,
+		timeout: -1,
 	}
 }
 
@@ -127,7 +127,7 @@ func (options *QueryOptions) GetTimeout() int {
 
 // Query executes a query against the graph.
 func (g *Graph) Query(q string) (*QueryResult, error) {
-	r, err := g.Conn.Do("GRAPH.QUERY", g.Id, q, "--compact")
+	r, err := g.Conn.Do(ctx, "GRAPH.QUERY", g.Id, q, "--compact").Result()
 	if err != nil {
 		return nil, err
 	}
@@ -138,7 +138,7 @@ func (g *Graph) Query(q string) (*QueryResult, error) {
 // ROQuery executes a read only query against the graph.
 func (g *Graph) ROQuery(q string) (*QueryResult, error) {
 
-	r, err := g.Conn.Do("GRAPH.RO_QUERY", g.Id, q, "--compact")
+	r, err := g.Conn.Do(ctx, "GRAPH.RO_QUERY", g.Id, q, "--compact").Result()
 	if err != nil {
 		return nil, err
 	}
@@ -147,20 +147,20 @@ func (g *Graph) ROQuery(q string) (*QueryResult, error) {
 }
 
 func (g *Graph) ParameterizedQuery(q string, params map[string]interface{}) (*QueryResult, error) {
-	if(params != nil){
+	if params != nil {
 		q = BuildParamsHeader(params) + q
 	}
-	return g.Query(q);
+	return g.Query(q)
 }
 
 // QueryWithOptions issues a query with the given timeout
 func (g *Graph) QueryWithOptions(q string, options *QueryOptions) (*QueryResult, error) {
 	var r interface{}
 	var err error
-	if(options.timeout >= 0) {
-		r, err = g.Conn.Do("GRAPH.QUERY", g.Id, q, "--compact", "timeout", options.timeout)
+	if options.timeout >= 0 {
+		r, err = g.Conn.Do(ctx, "GRAPH.QUERY", g.Id, q, "--compact", "timeout", options.timeout).Result()
 	} else {
-		r, err = g.Conn.Do("GRAPH.QUERY", g.Id, q, "--compact")
+		r, err = g.Conn.Do(ctx, "GRAPH.QUERY", g.Id, q, "--compact").Result()
 	}
 	if err != nil {
 		return nil, err
@@ -171,20 +171,20 @@ func (g *Graph) QueryWithOptions(q string, options *QueryOptions) (*QueryResult,
 
 // ParameterizedQueryWithOptions issues a parameterized query with the given timeout
 func (g *Graph) ParameterizedQueryWithOptions(q string, params map[string]interface{}, options *QueryOptions) (*QueryResult, error) {
-	if(params != nil){
+	if params != nil {
 		q = BuildParamsHeader(params) + q
 	}
-	return g.QueryWithOptions(q, options);
+	return g.QueryWithOptions(q, options)
 }
 
 // ROQueryWithOptions issues a read-only query with the given timeout
 func (g *Graph) ROQueryWithOptions(q string, options *QueryOptions) (*QueryResult, error) {
 	var r interface{}
 	var err error
-	if(options.timeout >= 0) {
-		r, err = g.Conn.Do("GRAPH.RO_QUERY", g.Id, q, "--compact", "timeout", options.timeout)
+	if options.timeout >= 0 {
+		r, err = g.Conn.Do(ctx, "GRAPH.RO_QUERY", g.Id, q, "--compact", "timeout", options.timeout).Result()
 	} else {
-		r, err = g.Conn.Do("GRAPH.RO_QUERY", g.Id, q, "--compact")
+		r, err = g.Conn.Do(ctx, "GRAPH.RO_QUERY", g.Id, q, "--compact").Result()
 	}
 	if err != nil {
 		return nil, err

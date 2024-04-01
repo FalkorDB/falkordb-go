@@ -9,7 +9,7 @@ import (
 	"log"
 	"os"
 
-	"github.com/RedisGraph/redisgraph-go"
+	"github.com/FalkorDB/falkordb-go"
 	"github.com/gomodule/redigo/redis"
 )
 
