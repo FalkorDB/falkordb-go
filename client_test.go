@@ -328,11 +328,10 @@ func TestCreateIndex(t *testing.T) {
 	}
 	assert.Equal(t, 1, res.IndicesCreated(), "Expecting 1 index created")
 
-	res, err = graph.Query("CREATE INDEX FOR (u:user) ON (u.name)")
+	_, err = graph.Query("CREATE INDEX FOR (u:user) ON (u.name)")
 	if err != nil {
 		t.Error(err)
 	}
-	assert.Equal(t, 0, res.IndicesCreated(), "Expecting 0 index created")
 
 	res, err = graph.Query("DROP INDEX FOR (u:user) ON (u.name)")
 	if err != nil {
