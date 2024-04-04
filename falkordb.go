@@ -2,7 +2,6 @@ package falkordb
 
 import (
 	"context"
-	"crypto/tls"
 
 	"github.com/redis/go-redis/v9"
 )
@@ -13,14 +12,7 @@ type FalkorDB struct {
 	Conn *redis.Client
 }
 
-type ConnectionOption struct {
-	Username   string
-	Password   string
-	ClientName string
-	TLSConfig  *tls.Config
-	PoolSize   int
-	Protocol   int
-}
+type ConnectionOption = redis.Options
 
 func isSentinel(conn *redis.Client) bool {
 	info, _ := conn.InfoMap(ctx, "server").Result()
@@ -28,16 +20,7 @@ func isSentinel(conn *redis.Client) bool {
 }
 
 func FalkorDBNew(address string, options *ConnectionOption) (*FalkorDB, error) {
-	rdb := redis.NewClient(&redis.Options{
-		Addr:       address,
-		DB:         0,
-		Username:   options.Username,
-		Password:   options.Password,
-		ClientName: options.ClientName,
-		TLSConfig:  options.TLSConfig,
-		PoolSize:   options.PoolSize,
-		Protocol:   options.Protocol,
-	})
+	rdb := redis.NewClient(options)
 
 	if isSentinel(rdb) {
 		rdb = redis.NewFailoverClient(&redis.FailoverOptions{
