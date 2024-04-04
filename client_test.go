@@ -7,7 +7,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-var graph Graph
+var graph *Graph
 
 func createGraph() {
 	db, _ := FalkorDBNew("0.0.0.0:6379", &ConnectionOption{})

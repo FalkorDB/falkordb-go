@@ -151,7 +151,7 @@ func (qr *QueryResult) parseProperties(props []interface{}) map[string]interface
 	for _, prop := range props {
 		p := prop.([]interface{})
 		idx := p[0].(int64)
-		prop_name := qr.graph.getProperty(int(idx))
+		prop_name := qr.graph.schema.getProperty(int(idx))
 		prop_value := qr.parseScalar(p[1:])
 		properties[prop_name] = prop_value
 	}
@@ -169,7 +169,7 @@ func (qr *QueryResult) parseNode(cell interface{}) *Node {
 	labelIds := c[1].([]interface{})
 	labels := make([]string, len(labelIds))
 	for i := 0; i < len(labelIds); i++ {
-		labels[i] = qr.graph.getLabel(int(labelIds[i].(int64)))
+		labels[i] = qr.graph.schema.getLabel(int(labelIds[i].(int64)))
 	}
 
 	rawProps := c[2].([]interface{})
@@ -190,7 +190,7 @@ func (qr *QueryResult) parseEdge(cell interface{}) *Edge {
 	c := cell.([]interface{})
 	id := c[0].(int64)
 	r := c[1].(int64)
-	relation := qr.graph.getRelation(int(r))
+	relation := qr.graph.schema.getRelation(int(r))
 
 	src_node_id := c[2].(int64)
 	dest_node_id := c[3].(int64)

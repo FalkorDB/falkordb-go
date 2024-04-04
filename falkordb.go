@@ -63,7 +63,7 @@ func FromURL(url string) (*FalkorDB, error) {
 	return &FalkorDB{Conn: db}, nil
 }
 
-func (db *FalkorDB) SelectGraph(graphName string) Graph {
+func (db *FalkorDB) SelectGraph(graphName string) *Graph {
 	return graphNew(graphName, db.Conn)
 }
 

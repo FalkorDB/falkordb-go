@@ -3,7 +3,6 @@ package falkordb
 import (
 	"fmt"
 	"strings"
-	"sync"
 
 	"github.com/redis/go-redis/v9"
 )
@@ -15,23 +14,18 @@ type QueryOptions struct {
 
 // Graph represents a graph, which is a collection of nodes and edges.
 type Graph struct {
-	Id                string
-	Conn              *redis.Client
-	labels            []string   // List of node labels.
-	relationshipTypes []string   // List of relation types.
-	properties        []string   // List of properties.
-	mutex             sync.Mutex // Lock, used for updating internal state.
+	Id     string
+	Conn   *redis.Client
+	schema GraphSchema
 }
 
 // New creates a new graph.
-func graphNew(Id string, conn *redis.Client) Graph {
-	return Graph{
-		Id:                Id,
-		Conn:              conn,
-		labels:            make([]string, 0),
-		relationshipTypes: make([]string, 0),
-		properties:        make([]string, 0),
-	}
+func graphNew(Id string, conn *redis.Client) *Graph {
+	g := new(Graph)
+	g.Id = Id
+	g.Conn = conn
+	g.schema = GraphSchemaNew(g)
+	return g
 }
 
 // ExecutionPlan gets the execution plan for given query.
@@ -44,9 +38,7 @@ func (g *Graph) Delete() error {
 	err := g.Conn.Do(ctx, "GRAPH.DELETE", g.Id).Err()
 
 	// clear internal mappings
-	g.labels = g.labels[:0]
-	g.properties = g.properties[:0]
-	g.relationshipTypes = g.relationshipTypes[:0]
+	g.schema.clear()
 
 	return err
 }
@@ -107,67 +99,6 @@ func (g *Graph) ROQuery(q string, params map[string]interface{}, options *QueryO
 	return QueryResultNew(g, r)
 }
 
-func (g *Graph) getLabel(lblIdx int) string {
-	if lblIdx >= len(g.labels) {
-		// Missing label, refresh label mapping table.
-		g.mutex.Lock()
-
-		// Recheck now that we've got the lock.
-		if lblIdx >= len(g.labels) {
-			g.labels = g.Labels()
-			// Retry.
-			if lblIdx >= len(g.labels) {
-				// Error!
-				panic("Unknown label index.")
-			}
-		}
-		g.mutex.Unlock()
-	}
-
-	return g.labels[lblIdx]
-}
-
-func (g *Graph) getRelation(relIdx int) string {
-	if relIdx >= len(g.relationshipTypes) {
-		// Missing relation type, refresh relation type mapping table.
-		g.mutex.Lock()
-
-		// Recheck now that we've got the lock.
-		if relIdx >= len(g.relationshipTypes) {
-			g.relationshipTypes = g.RelationshipTypes()
-			// Retry.
-			if relIdx >= len(g.relationshipTypes) {
-				// Error!
-				panic("Unknown relation type index.")
-			}
-		}
-		g.mutex.Unlock()
-	}
-
-	return g.relationshipTypes[relIdx]
-}
-
-func (g *Graph) getProperty(propIdx int) string {
-	if propIdx >= len(g.properties) {
-		// Missing property, refresh property mapping table.
-		g.mutex.Lock()
-
-		// Recheck now that we've got the lock.
-		if propIdx >= len(g.properties) {
-			g.properties = g.PropertyKeys()
-
-			// Retry.
-			if propIdx >= len(g.properties) {
-				// Error!
-				panic("Unknown property index.")
-			}
-		}
-		g.mutex.Unlock()
-	}
-
-	return g.properties[propIdx]
-}
-
 // Procedures
 
 // CallProcedure invokes procedure.
@@ -185,40 +116,4 @@ func (g *Graph) CallProcedure(procedure string, yield []string, args ...interfac
 	}
 
 	return g.Query(q, nil, nil)
-}
-
-// Labels, retrieves all node labels.
-func (g *Graph) Labels() []string {
-	qr, _ := g.CallProcedure("db.labels", nil)
-
-	l := make([]string, len(qr.results))
-
-	for idx, r := range qr.results {
-		l[idx] = r.GetByIndex(0).(string)
-	}
-	return l
-}
-
-// RelationshipTypes, retrieves all edge relationship types.
-func (g *Graph) RelationshipTypes() []string {
-	qr, _ := g.CallProcedure("db.relationshipTypes", nil)
-
-	rt := make([]string, len(qr.results))
-
-	for idx, r := range qr.results {
-		rt[idx] = r.GetByIndex(0).(string)
-	}
-	return rt
-}
-
-// PropertyKeys, retrieves all properties names.
-func (g *Graph) PropertyKeys() []string {
-	qr, _ := g.CallProcedure("db.propertyKeys", nil)
-
-	p := make([]string, len(qr.results))
-
-	for idx, r := range qr.results {
-		p[idx] = r.GetByIndex(0).(string)
-	}
-	return p
 }
