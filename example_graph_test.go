@@ -12,7 +12,7 @@ func ExampleSelectGraph() {
 	graph := db.SelectGraph("social")
 
 	q := "CREATE (w:WorkPlace {name:'FalkorDB'}) RETURN w"
-	res, _ := graph.Query(q)
+	res, _ := graph.Query(q, nil, nil)
 
 	res.Next()
 	r := res.Record()

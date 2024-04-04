@@ -69,7 +69,7 @@ func main() {
            RETURN p.name, p.age, c.name`
 
 	// result is a QueryResult struct containing the query's generated records and statistics.
-	result, _ := graph.Query(query)
+	result, _ := graph.Query(query, nil, nil)
 
 	// Pretty-print the full result set as a table.
 	result.PrettyPrint()
@@ -89,7 +89,7 @@ func main() {
 
 	// Path matching example.
 	query = "MATCH p = (:person)-[:visited]->(:country) RETURN p"
-	result, err := graph.Query(query)
+	result, err := graph.Query(query, nil, nil)
 	if err != nil {
 		fmt.Println(err)
 		os.Exit(1)
@@ -125,10 +125,8 @@ Queries can be run with a millisecond-level timeout as described in [the documen
 
 ```go
 options := NewQueryOptions().SetTimeout(10) // 10-millisecond timeout
-res, err := graph.QueryWithOptions("MATCH (src {name: 'John Doe'})-[*]->(dest) RETURN dest", options)
+res, err := graph.Query("MATCH (src {name: 'John Doe'})-[*]->(dest) RETURN dest", nil, options)
 ```
-
-`ParameterizedQueryWithOptions` and `ROQueryWithOptions` endpoints are also exposed by the client.
 
 ## Running tests
 

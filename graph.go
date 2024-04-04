@@ -16,8 +16,6 @@ type QueryOptions struct {
 // Graph represents a graph, which is a collection of nodes and edges.
 type Graph struct {
 	Id                string
-	Nodes             map[string]*Node
-	Edges             []*Edge
 	Conn              *redis.Client
 	labels            []string   // List of node labels.
 	relationshipTypes []string   // List of relation types.
@@ -29,42 +27,11 @@ type Graph struct {
 func graphNew(Id string, conn *redis.Client) Graph {
 	return Graph{
 		Id:                Id,
-		Nodes:             make(map[string]*Node, 0),
-		Edges:             make([]*Edge, 0),
 		Conn:              conn,
 		labels:            make([]string, 0),
 		relationshipTypes: make([]string, 0),
 		properties:        make([]string, 0),
 	}
-}
-
-// AddNode adds a node to the graph.
-func (g *Graph) AddNode(n *Node) {
-	if n.Alias == "" {
-		n.Alias = RandomString(10)
-	}
-	n.graph = g
-	g.Nodes[n.Alias] = n
-}
-
-// AddEdge adds an edge to the graph.
-func (g *Graph) AddEdge(e *Edge) error {
-	// Verify that the edge has source and destination
-	if e.Source == nil || e.Destination == nil {
-		return fmt.Errorf("Both source and destination nodes should be defined")
-	}
-
-	// Verify that the edge's nodes have been previously added to the graph
-	if _, ok := g.Nodes[e.Source.Alias]; !ok {
-		return fmt.Errorf("Source node neeeds to be added to the graph first")
-	}
-	if _, ok := g.Nodes[e.Destination.Alias]; !ok {
-		return fmt.Errorf("Destination node neeeds to be added to the graph first")
-	}
-
-	e.graph = g
-	g.Edges = append(g.Edges, e)
-	return nil
 }
 
 // ExecutionPlan gets the execution plan for given query.
@@ -82,29 +49,6 @@ func (g *Graph) Delete() error {
 	g.relationshipTypes = g.relationshipTypes[:0]
 
 	return err
-}
-
-// Flush will create the graph and clear it
-func (g *Graph) Flush() (*QueryResult, error) {
-	res, err := g.Commit()
-	if err == nil {
-		g.Nodes = make(map[string]*Node)
-		g.Edges = make([]*Edge, 0)
-	}
-	return res, err
-}
-
-// Commit creates the entire graph, but will re-add nodes if called again.
-func (g *Graph) Commit() (*QueryResult, error) {
-	items := make([]string, 0, len(g.Nodes)+len(g.Edges))
-	for _, n := range g.Nodes {
-		items = append(items, n.Encode())
-	}
-	for _, e := range g.Edges {
-		items = append(items, e.Encode())
-	}
-	q := "CREATE " + strings.Join(items, ",")
-	return g.Query(q)
 }
 
 // NewQueryOptions instantiates a new QueryOptions struct.
@@ -126,38 +70,13 @@ func (options *QueryOptions) GetTimeout() int {
 }
 
 // Query executes a query against the graph.
-func (g *Graph) Query(q string) (*QueryResult, error) {
-	r, err := g.Conn.Do(ctx, "GRAPH.QUERY", g.Id, q, "--compact").Result()
-	if err != nil {
-		return nil, err
-	}
-
-	return QueryResultNew(g, r)
-}
-
-// ROQuery executes a read only query against the graph.
-func (g *Graph) ROQuery(q string) (*QueryResult, error) {
-
-	r, err := g.Conn.Do(ctx, "GRAPH.RO_QUERY", g.Id, q, "--compact").Result()
-	if err != nil {
-		return nil, err
-	}
-
-	return QueryResultNew(g, r)
-}
-
-func (g *Graph) ParameterizedQuery(q string, params map[string]interface{}) (*QueryResult, error) {
+func (g *Graph) Query(q string, params map[string]interface{}, options *QueryOptions) (*QueryResult, error) {
 	if params != nil {
 		q = BuildParamsHeader(params) + q
 	}
-	return g.Query(q)
-}
-
-// QueryWithOptions issues a query with the given timeout
-func (g *Graph) QueryWithOptions(q string, options *QueryOptions) (*QueryResult, error) {
 	var r interface{}
 	var err error
-	if options.timeout >= 0 {
+	if options != nil && options.timeout >= 0 {
 		r, err = g.Conn.Do(ctx, "GRAPH.QUERY", g.Id, q, "--compact", "timeout", options.timeout).Result()
 	} else {
 		r, err = g.Conn.Do(ctx, "GRAPH.QUERY", g.Id, q, "--compact").Result()
@@ -169,19 +88,14 @@ func (g *Graph) QueryWithOptions(q string, options *QueryOptions) (*QueryResult,
 	return QueryResultNew(g, r)
 }
 
-// ParameterizedQueryWithOptions issues a parameterized query with the given timeout
-func (g *Graph) ParameterizedQueryWithOptions(q string, params map[string]interface{}, options *QueryOptions) (*QueryResult, error) {
+// ROQuery executes a read only query against the graph.
+func (g *Graph) ROQuery(q string, params map[string]interface{}, options *QueryOptions) (*QueryResult, error) {
 	if params != nil {
 		q = BuildParamsHeader(params) + q
 	}
-	return g.QueryWithOptions(q, options)
-}
-
-// ROQueryWithOptions issues a read-only query with the given timeout
-func (g *Graph) ROQueryWithOptions(q string, options *QueryOptions) (*QueryResult, error) {
 	var r interface{}
 	var err error
-	if options.timeout >= 0 {
+	if options != nil && options.timeout >= 0 {
 		r, err = g.Conn.Do(ctx, "GRAPH.RO_QUERY", g.Id, q, "--compact", "timeout", options.timeout).Result()
 	} else {
 		r, err = g.Conn.Do(ctx, "GRAPH.RO_QUERY", g.Id, q, "--compact").Result()
@@ -191,12 +105,6 @@ func (g *Graph) ROQueryWithOptions(q string, options *QueryOptions) (*QueryResul
 	}
 
 	return QueryResultNew(g, r)
-}
-
-// Merge pattern
-func (g *Graph) Merge(p string) (*QueryResult, error) {
-	q := fmt.Sprintf("MERGE %s", p)
-	return g.Query(q)
 }
 
 func (g *Graph) getLabel(lblIdx int) string {
@@ -276,7 +184,7 @@ func (g *Graph) CallProcedure(procedure string, yield []string, args ...interfac
 		q += fmt.Sprintf(" YIELD %s", strings.Join(yield, ","))
 	}
 
-	return g.Query(q)
+	return g.Query(q, nil, nil)
 }
 
 // Labels, retrieves all node labels.
