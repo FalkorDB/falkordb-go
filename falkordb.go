@@ -2,6 +2,7 @@ package falkordb
 
 import (
 	"context"
+	"errors"
 
 	"github.com/redis/go-redis/v9"
 )
@@ -20,15 +21,23 @@ func isSentinel(conn *redis.Client) bool {
 }
 
 func FalkorDBNew(address string, options *ConnectionOption) (*FalkorDB, error) {
-	rdb := redis.NewClient(options)
+	db := redis.NewClient(options)
 
-	if isSentinel(rdb) {
-		rdb = redis.NewFailoverClient(&redis.FailoverOptions{
-			MasterName:    "master-name",
-			SentinelAddrs: []string{":9126", ":9127", ":9128"},
+	if isSentinel(db) {
+		masters, err := db.Do(ctx, "SENTINEL", "MASTERS").Result()
+		if err != nil {
+			return nil, err
+		}
+		if len(masters.([]interface{})) != 1 {
+			return nil, errors.New("multiple masters, require service name")
+		}
+		masterName := masters.([]interface{})[0].(map[string]interface{})["name"].(string)
+		db = redis.NewFailoverClient(&redis.FailoverOptions{
+			MasterName:    masterName,
+			SentinelAddrs: []string{address},
 		})
 	}
-	return &FalkorDB{Conn: rdb}, nil
+	return &FalkorDB{Conn: db}, nil
 }
 
 func FromURL(url string) (*FalkorDB, error) {
@@ -36,14 +45,22 @@ func FromURL(url string) (*FalkorDB, error) {
 	if err != nil {
 		return nil, err
 	}
-	rdb := redis.NewClient(options)
-	if isSentinel(rdb) {
-		rdb = redis.NewFailoverClient(&redis.FailoverOptions{
-			MasterName:    "master-name",
-			SentinelAddrs: []string{":9126", ":9127", ":9128"},
+	db := redis.NewClient(options)
+	if isSentinel(db) {
+		masters, err := db.Do(ctx, "SENTINEL", "MASTERS").Result()
+		if err != nil {
+			return nil, err
+		}
+		if len(masters.([]interface{})) != 1 {
+			return nil, errors.New("multiple masters, require service name")
+		}
+		masterName := masters.([]interface{})[0].(map[string]interface{})["name"].(string)
+		db = redis.NewFailoverClient(&redis.FailoverOptions{
+			MasterName:    masterName,
+			SentinelAddrs: []string{options.Addr},
 		})
 	}
-	return &FalkorDB{Conn: rdb}, nil
+	return &FalkorDB{Conn: db}, nil
 }
 
 func (db *FalkorDB) SelectGraph(graphName string) Graph {
