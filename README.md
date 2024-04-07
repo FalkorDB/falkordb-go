@@ -31,7 +31,7 @@ import (
 )
 
 func main() {
-	db, _ := falkordb.FalkorDBNew("0.0.0.0:6379", &falkordb.ConnectionOption{})
+	db, _ := falkordb.FalkorDBNew(&falkordb.ConnectionOption{Addr: "0.0.0.0:6379"})
 
 	graph := db.SelectGraph("social")
 

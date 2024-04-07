@@ -20,7 +20,8 @@ func isSentinel(conn *redis.Client) bool {
 	return info["server"]["redis_mode"] == "sentinel"
 }
 
-func FalkorDBNew(address string, options *ConnectionOption) (*FalkorDB, error) {
+// FalkorDB Class for interacting with a FalkorDB server.
+func FalkorDBNew(options *ConnectionOption) (*FalkorDB, error) {
 	db := redis.NewClient(options)
 
 	if isSentinel(db) {
@@ -34,12 +35,13 @@ func FalkorDBNew(address string, options *ConnectionOption) (*FalkorDB, error) {
 		masterName := masters.([]interface{})[0].(map[string]interface{})["name"].(string)
 		db = redis.NewFailoverClient(&redis.FailoverOptions{
 			MasterName:    masterName,
-			SentinelAddrs: []string{address},
+			SentinelAddrs: []string{options.Addr},
 		})
 	}
 	return &FalkorDB{Conn: db}, nil
 }
 
+// Creates a new FalkorDB instance from a URL.
 func FromURL(url string) (*FalkorDB, error) {
 	options, err := redis.ParseURL(url)
 	if err != nil {
@@ -63,18 +65,25 @@ func FromURL(url string) (*FalkorDB, error) {
 	return &FalkorDB{Conn: db}, nil
 }
 
+// Selects a graph by creating a new Graph instance.
 func (db *FalkorDB) SelectGraph(graphName string) *Graph {
 	return graphNew(graphName, db.Conn)
 }
 
+// List all graph names.
+// See: https://docs.falkordb.com/commands/graph.list.html
 func (db *FalkorDB) ListGraphs() ([]string, error) {
 	return db.Conn.Do(ctx, "GRAPH.LIST").StringSlice()
 }
 
+// Retrieve a DB level configuration.
+// For a list of available configurations see: https://docs.falkordb.com/configuration.html#falkordb-configuration-parameters
 func (db *FalkorDB) ConfigGet(key string) string {
 	return db.Conn.Do(ctx, "GRAPH.CONFIG", "GET", key).String()
 }
 
+// Update a DB level configuration.
+// For a list of available configurations see: https://docs.falkordb.com/configuration.html#falkordb-configuration-parameters
 func (db *FalkorDB) ConfigSet(key, value string) error {
 	return db.Conn.Do(ctx, "GRAPH.CONFIG", "SET", key).Err()
 }

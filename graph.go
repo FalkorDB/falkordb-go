@@ -61,17 +61,16 @@ func (options *QueryOptions) GetTimeout() int {
 	return options.timeout
 }
 
-// Query executes a query against the graph.
-func (g *Graph) Query(q string, params map[string]interface{}, options *QueryOptions) (*QueryResult, error) {
+func (g *Graph) query(command string, q string, params map[string]interface{}, options *QueryOptions) (*QueryResult, error) {
 	if params != nil {
 		q = BuildParamsHeader(params) + q
 	}
 	var r interface{}
 	var err error
 	if options != nil && options.timeout >= 0 {
-		r, err = g.Conn.Do(ctx, "GRAPH.QUERY", g.Id, q, "--compact", "timeout", options.timeout).Result()
+		r, err = g.Conn.Do(ctx, command, g.Id, q, "--compact", "timeout", options.timeout).Result()
 	} else {
-		r, err = g.Conn.Do(ctx, "GRAPH.QUERY", g.Id, q, "--compact").Result()
+		r, err = g.Conn.Do(ctx, command, g.Id, q, "--compact").Result()
 	}
 	if err != nil {
 		return nil, err
@@ -80,23 +79,14 @@ func (g *Graph) Query(q string, params map[string]interface{}, options *QueryOpt
 	return QueryResultNew(g, r)
 }
 
+// Query executes a query against the graph.
+func (g *Graph) Query(q string, params map[string]interface{}, options *QueryOptions) (*QueryResult, error) {
+	return g.query("GRAPH.QUERY", q, params, options)
+}
+
 // ROQuery executes a read only query against the graph.
 func (g *Graph) ROQuery(q string, params map[string]interface{}, options *QueryOptions) (*QueryResult, error) {
-	if params != nil {
-		q = BuildParamsHeader(params) + q
-	}
-	var r interface{}
-	var err error
-	if options != nil && options.timeout >= 0 {
-		r, err = g.Conn.Do(ctx, "GRAPH.RO_QUERY", g.Id, q, "--compact", "timeout", options.timeout).Result()
-	} else {
-		r, err = g.Conn.Do(ctx, "GRAPH.RO_QUERY", g.Id, q, "--compact").Result()
-	}
-	if err != nil {
-		return nil, err
-	}
-
-	return QueryResultNew(g, r)
+	return g.query("GRAPH.RO_QUERY", q, params, options)
 }
 
 // Procedures
