@@ -36,8 +36,17 @@ func FalkorDBNew(options *ConnectionOption) (*FalkorDB, error) {
 		var strInterface interface{} = str
 		masterName := masters.([]interface{})[0].(map[interface{}]interface{})[strInterface].(string)
 		db = redis.NewFailoverClient(&redis.FailoverOptions{
-			MasterName:    masterName,
-			SentinelAddrs: []string{options.Addr},
+			MasterName:       masterName,
+			SentinelAddrs:    []string{options.Addr},
+			ClientName:       options.ClientName,
+			Username:         options.Username,
+			Password:         options.Password,
+			SentinelUsername: options.Username,
+			SentinelPassword: options.Password,
+			MaxRetries:       options.MaxRetries,
+			MinRetryBackoff:  options.MinRetryBackoff,
+			MaxRetryBackoff:  options.MaxRetryBackoff,
+			TLSConfig:        options.TLSConfig,
 		})
 	}
 	return &FalkorDB{Conn: db}, nil
