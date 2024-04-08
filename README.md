@@ -35,38 +35,12 @@ func main() {
 
 	graph := db.SelectGraph("social")
 
-	graph.Delete()
+	graph.Query("CREATE (:Person {name: 'John Doe', age: 33, gender: 'male', status: 'single'})-[:VISITED]->(:VISITED {name: 'Japan'})")
 
-	john := rg.Node{
-		Label: "person",
-		Properties: map[string]interface{}{
-			"name":   "John Doe",
-			"age":    33,
-			"gender": "male",
-			"status": "single",
-		},
+	query, err := "MATCH (p:Person)-[v:VISITED]->(c:VISITED) RETURN p.name, p.age, c.name"
+	if err != nil {
+		os.Exit(1)
 	}
-	graph.AddNode(&john)
-
-	japan := rg.Node{
-		Label: "country",
-		Properties: map[string]interface{}{
-			"name": "Japan",
-		},
-	}
-	graph.AddNode(&japan)
-
-	edge := rg.Edge{
-		Source:      &john,
-		Relation:    "visited",
-		Destination: &japan,
-	}
-	graph.AddEdge(&edge)
-
-	graph.Commit()
-
-	query := `MATCH (p:person)-[v:visited]->(c:country)
-           RETURN p.name, p.age, c.name`
 
 	// result is a QueryResult struct containing the query's generated records and statistics.
 	result, _ := graph.Query(query, nil, nil)
