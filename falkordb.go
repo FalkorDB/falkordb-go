@@ -32,7 +32,9 @@ func FalkorDBNew(options *ConnectionOption) (*FalkorDB, error) {
 		if len(masters.([]interface{})) != 1 {
 			return nil, errors.New("multiple masters, require service name")
 		}
-		masterName := masters.([]interface{})[0].(map[string]interface{})["name"].(string)
+		str := "name"
+		var strInterface interface{} = str
+		masterName := masters.([]interface{})[0].(map[interface{}]interface{})[strInterface].(string)
 		db = redis.NewFailoverClient(&redis.FailoverOptions{
 			MasterName:    masterName,
 			SentinelAddrs: []string{options.Addr},
