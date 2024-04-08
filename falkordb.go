@@ -17,7 +17,7 @@ type ConnectionOption = redis.Options
 
 func isSentinel(conn *redis.Client) bool {
 	info, _ := conn.InfoMap(ctx, "server").Result()
-	return info["server"]["redis_mode"] == "sentinel"
+	return info["Server"]["redis_mode"] == "sentinel"
 }
 
 // FalkorDB Class for interacting with a FalkorDB server.
