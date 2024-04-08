@@ -35,7 +35,7 @@ func main() {
 
 	graph := db.SelectGraph("social")
 
-	graph.Query("CREATE (:Person {name: 'John Doe', age: 33, gender: 'male', status: 'single'})-[:VISITED]->(:VISITED {name: 'Japan'})")
+	graph.Query("CREATE (:Person {name: 'John Doe', age: 33, gender: 'male', status: 'single'})-[:VISITED]->(:VISITED {name: 'Japan'})", nil, nil)
 
 	query, err := "MATCH (p:Person)-[v:VISITED]->(c:VISITED) RETURN p.name, p.age, c.name"
 	if err != nil {
