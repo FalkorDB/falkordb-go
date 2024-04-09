@@ -47,6 +47,9 @@ func FalkorDBNew(options *ConnectionOption) (*FalkorDB, error) {
 			MinRetryBackoff:  options.MinRetryBackoff,
 			MaxRetryBackoff:  options.MaxRetryBackoff,
 			TLSConfig:        options.TLSConfig,
+			PoolFIFO:         options.PoolFIFO,
+			PoolSize:         options.PoolSize,
+			PoolTimeout:      options.PoolTimeout,
 		})
 	}
 	return &FalkorDB{Conn: db}, nil
