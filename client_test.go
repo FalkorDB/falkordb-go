@@ -439,7 +439,7 @@ func TestTimeout(t *testing.T) {
 	assert.Equal(t, 1, options.GetTimeout())
 
 	// Issue a long-running query with a 1-millisecond timeout.
-	res, err := graph.Query("UNWIND range(0, 1000000) AS v RETURN v", nil, options)
+	res, err := graph.Query("UNWIND range(0, 1000000) AS v WHERE v % 2 = 1 RETURN COUNT(v)", nil, options)
 	assert.Nil(t, res)
 	assert.NotNil(t, err)
 
