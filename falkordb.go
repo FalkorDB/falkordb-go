@@ -99,12 +99,12 @@ func (db *FalkorDB) ListGraphs() ([]string, error) {
 
 // Retrieve a DB level configuration.
 // For a list of available configurations see: https://docs.falkordb.com/configuration.html#falkordb-configuration-parameters
-func (db *FalkorDB) ConfigGet(key string) string {
-	return db.Conn.Do(ctx, "GRAPH.CONFIG", "GET", key).String()
+func (db *FalkorDB) ConfigGet(key string) (interface{}, error) {
+	return db.Conn.Do(ctx, "GRAPH.CONFIG", "GET", key).Result()
 }
 
 // Update a DB level configuration.
 // For a list of available configurations see: https://docs.falkordb.com/configuration.html#falkordb-configuration-parameters
-func (db *FalkorDB) ConfigSet(key, value string) error {
-	return db.Conn.Do(ctx, "GRAPH.CONFIG", "SET", key).Err()
+func (db *FalkorDB) ConfigSet(key, value interface{}) error {
+	return db.Conn.Do(ctx, "GRAPH.CONFIG", "SET", key, value).Err()
 }
