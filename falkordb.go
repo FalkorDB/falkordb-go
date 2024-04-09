@@ -3,6 +3,7 @@ package falkordb
 import (
 	"context"
 	"errors"
+	"strings"
 
 	"github.com/redis/go-redis/v9"
 )
@@ -57,6 +58,12 @@ func FalkorDBNew(options *ConnectionOption) (*FalkorDB, error) {
 
 // Creates a new FalkorDB instance from a URL.
 func FromURL(url string) (*FalkorDB, error) {
+	if strings.HasPrefix(url, "falkor://") {
+		url = "redis://" + url[len("falkor://"):]
+	} else if strings.HasPrefix(url, "falkors://") {
+		url = "rediss://" + url[len("falkors://"):]
+	}
+
 	options, err := redis.ParseURL(url)
 	if err != nil {
 		return nil, err
