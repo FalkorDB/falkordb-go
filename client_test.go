@@ -10,7 +10,7 @@ import (
 var graph *Graph
 
 func createGraph() {
-	db, _ := FalkorDBNew(&ConnectionOption{Addr: "0.0.0.0:6379"})
+	db, _ := FromURL("falkor://0.0.0.0:6379")
 	graph = db.SelectGraph("social")
 	graph.Delete()
 
