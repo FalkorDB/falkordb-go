@@ -16,7 +16,7 @@ get:
 examples: get
 	@echo " "
 	@echo "Building the examples..."
-	$(GOBUILD) ./examples/redisgraph_tls_client/.
+	$(GOBUILD) ./examples/falkordb_tls_client/.
 
 test: get
 	$(GOTEST) -race -covermode=atomic ./...

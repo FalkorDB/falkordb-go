@@ -1,12 +1,12 @@
 package falkordb
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"strconv"
 	"strings"
 
-	"github.com/gomodule/redigo/redis"
 	"github.com/olekukonko/tablewriter"
 )
 
@@ -74,12 +74,7 @@ func QueryResultNew(g *Graph, response interface{}) (*QueryResult, error) {
 		currentRecordIdx: -1,
 	}
 
-	r, _ := redis.Values(response, nil)
-
-	// Check to see if we're encountered a run-time error.
-	if err, ok := r[len(r)-1].(redis.Error); ok {
-		return nil, err
-	}
+	r := response.([]interface{})
 
 	if len(r) == 1 {
 		qr.parseStatistics(r[0])
@@ -102,183 +97,227 @@ func (qr *QueryResult) parseResults(raw_result_set []interface{}) {
 }
 
 func (qr *QueryResult) parseStatistics(raw_statistics interface{}) {
-	statistics, _ := redis.Strings(raw_statistics, nil)
+	statistics := raw_statistics.([]interface{})
 	qr.statistics = make(map[string]float64)
 
 	for _, rs := range statistics {
-		v := strings.Split(rs, ": ")
+		v := strings.Split(rs.(string), ": ")
 		f, _ := strconv.ParseFloat(strings.Split(v[1], " ")[0], 64)
 		qr.statistics[v[0]] = f
 	}
 }
 
 func (qr *QueryResult) parseHeader(raw_header interface{}) {
-	header, _ := redis.Values(raw_header, nil)
+	header := raw_header.([]interface{})
 
 	for _, col := range header {
-		c, _ := redis.Values(col, nil)
-		ct, _ := redis.Int(c[0], nil)
-		cn, _ := redis.String(c[1], nil)
+		c := col.([]interface{})
+		ct := c[0].(int64)
+		cn := c[1].(string)
 
 		qr.header.column_types = append(qr.header.column_types, ResultSetColumnTypes(ct))
 		qr.header.column_names = append(qr.header.column_names, cn)
 	}
 }
 
-func (qr *QueryResult) parseRecords(raw_result_set []interface{}) {
-	records, _ := redis.Values(raw_result_set[1], nil)
+func (qr *QueryResult) parseRecords(raw_result_set []interface{}) error {
+	records := raw_result_set[1].([]interface{})
 	qr.results = make([]*Record, len(records))
 
 	for i, r := range records {
-		cells, _ := redis.Values(r, nil)
+		cells := r.([]interface{})
 		values := make([]interface{}, len(cells))
 
 		for idx, c := range cells {
 			t := qr.header.column_types[idx]
 			switch t {
 			case COLUMN_SCALAR:
-				s, _ := redis.Values(c, nil)
-				values[idx] = qr.parseScalar(s)
+				s, err := qr.parseScalar(c.([]interface{}))
+				if err != nil {
+					return err
+				}
+				values[idx] = s
 			case COLUMN_NODE:
-				values[idx] = qr.parseNode(c)
+				v, err := qr.parseNode(c)
+				if err != nil {
+					return err
+				}
+				values[idx] = v
 			case COLUMN_RELATION:
-				values[idx] = qr.parseEdge(c)
+				v, err := qr.parseEdge(c)
+				if err != nil {
+					return err
+				}
+				values[idx] = v
 			default:
-				panic("Unknown column type.")
+				return errors.New("unknown column type")
 			}
 		}
 		qr.results[i] = recordNew(values, qr.header.column_names)
 	}
+	return nil
 }
 
-func (qr *QueryResult) parseProperties(props []interface{}) map[string]interface{} {
+func (qr *QueryResult) parseProperties(props []interface{}) (map[string]interface{}, error) {
 	// [[name, value type, value] X N]
 	properties := make(map[string]interface{})
 	for _, prop := range props {
-		p, _ := redis.Values(prop, nil)
-		idx, _ := redis.Int(p[0], nil)
-		prop_name := qr.graph.getProperty(idx)
-		prop_value := qr.parseScalar(p[1:])
+		p := prop.([]interface{})
+		idx := p[0].(int64)
+		prop_name, err := qr.graph.schema.getProperty(int(idx))
+		if err != nil {
+			return nil, err
+		}
+		prop_value, err := qr.parseScalar(p[1:])
+		if err != nil {
+			return nil, err
+		}
 		properties[prop_name] = prop_value
 	}
 
-	return properties
+	return properties, nil
 }
 
-func (qr *QueryResult) parseNode(cell interface{}) *Node {
+func (qr *QueryResult) parseNode(cell interface{}) (*Node, error) {
 	// Node ID (integer),
 	// [label string offset (integer)],
 	// [[name, value type, value] X N]
 
-	c, _ := redis.Values(cell, nil)
-	id, _ := redis.Uint64(c[0], nil)
-	labelIds, _ := redis.Ints(c[1], nil)
+	c := cell.([]interface{})
+	id := c[0].(int64)
+	labelIds := c[1].([]interface{})
 	labels := make([]string, len(labelIds))
 	for i := 0; i < len(labelIds); i++ {
-		labels[i] = qr.graph.getLabel(labelIds[i])
+		label, err := qr.graph.schema.getLabel(int(labelIds[i].(int64)))
+		if err != nil {
+			return nil, err
+		}
+		labels[i] = label
 	}
 
-	rawProps, _ := redis.Values(c[2], nil)
-	properties := qr.parseProperties(rawProps)
+	rawProps := c[2].([]interface{})
+	properties, err := qr.parseProperties(rawProps)
+	if err != nil {
+		return nil, err
+	}
 
 	n := NodeNew(labels, "", properties)
-	n.ID = id
-	return n
+	n.ID = uint64(id)
+	return n, nil
 }
 
-func (qr *QueryResult) parseEdge(cell interface{}) *Edge {
+func (qr *QueryResult) parseEdge(cell interface{}) (*Edge, error) {
 	// Edge ID (integer),
 	// reltype string offset (integer),
 	// src node ID offset (integer),
 	// dest node ID offset (integer),
 	// [[name, value, value type] X N]
 
-	c, _ := redis.Values(cell, nil)
-	id, _ := redis.Uint64(c[0], nil)
-	r, _ := redis.Int(c[1], nil)
-	relation := qr.graph.getRelation(r)
+	c := cell.([]interface{})
+	id := c[0].(int64)
+	r := c[1].(int64)
+	relation, err := qr.graph.schema.getRelation(int(r))
+	if err != nil {
+		return nil, err
+	}
 
-	src_node_id, _ := redis.Uint64(c[2], nil)
-	dest_node_id, _ := redis.Uint64(c[3], nil)
-	rawProps, _ := redis.Values(c[4], nil)
-	properties := qr.parseProperties(rawProps)
+	src_node_id := c[2].(int64)
+	dest_node_id := c[3].(int64)
+	rawProps := c[4].([]interface{})
+	properties, err := qr.parseProperties(rawProps)
+	if err != nil {
+		return nil, err
+	}
 	e := EdgeNew(relation, nil, nil, properties)
 
-	e.ID = id
-	e.srcNodeID = src_node_id
-	e.destNodeID = dest_node_id
-	return e
+	e.ID = uint64(id)
+	e.srcNodeID = uint64(src_node_id)
+	e.destNodeID = uint64(dest_node_id)
+	return e, nil
 }
 
-func (qr *QueryResult) parseArray(cell interface{}) []interface{} {
+func (qr *QueryResult) parseArray(cell interface{}) ([]interface{}, error) {
 	var array = cell.([]interface{})
 	var arrayLength = len(array)
 	for i := 0; i < arrayLength; i++ {
-		array[i] = qr.parseScalar(array[i].([]interface{}))
+		s, err := qr.parseScalar(array[i].([]interface{}))
+		if err != nil {
+			return nil, err
+		}
+		array[i] = s
 	}
-	return array
+	return array, nil
 }
 
-func (qr *QueryResult) parsePath(cell interface{}) Path {
+func (qr *QueryResult) parsePath(cell interface{}) (Path, error) {
 	arrays := cell.([]interface{})
-	nodes := qr.parseScalar(arrays[0].([]interface{}))
-	edges := qr.parseScalar(arrays[1].([]interface{}))
-	return PathNew(nodes.([]interface{}), edges.([]interface{}))
+	nodes, err := qr.parseScalar(arrays[0].([]interface{}))
+	if err != nil {
+		return Path{}, err
+	}
+	edges, err := qr.parseScalar(arrays[1].([]interface{}))
+	if err != nil {
+		return Path{}, err
+	}
+	return PathNew(nodes.([]interface{}), edges.([]interface{})), nil
 }
 
-func (qr *QueryResult) parseMap(cell interface{}) map[string]interface{} {
+func (qr *QueryResult) parseMap(cell interface{}) (map[string]interface{}, error) {
 	var raw_map = cell.([]interface{})
 	var mapLength = len(raw_map)
 	var parsed_map = make(map[string]interface{})
 
 	for i := 0; i < mapLength; i += 2 {
-		key, _ := redis.String(raw_map[i], nil)
-		parsed_map[key] = qr.parseScalar(raw_map[i+1].([]interface{}))
+		key := raw_map[i].(string)
+		s, err := qr.parseScalar(raw_map[i+1].([]interface{}))
+		if err != nil {
+			return nil, err
+		}
+		parsed_map[key] = s
 	}
 
-	return parsed_map
+	return parsed_map, nil
 }
 
-func (qr *QueryResult) parseScalar(cell []interface{}) interface{} {
-	t, _ := redis.Int(cell[0], nil)
+func (qr *QueryResult) parseScalar(cell []interface{}) (interface{}, error) {
+	t := cell[0].(int64)
 	v := cell[1]
-	var s interface{}
 	switch ResultSetScalarTypes(t) {
 	case VALUE_NULL:
-		return nil
+		return nil, nil
 
 	case VALUE_STRING:
-		s, _ = redis.String(v, nil)
+		return v.(string), nil
 
 	case VALUE_INTEGER:
-		s, _ = redis.Int(v, nil)
+		return v.(int64), nil
 
 	case VALUE_BOOLEAN:
-		s, _ = redis.Bool(v, nil)
+		return v.(string) == "true", nil
 
 	case VALUE_DOUBLE:
-		s, _ = redis.Float64(v, nil)
+		return strconv.ParseFloat(v.(string), 64)
 
 	case VALUE_ARRAY:
-		s = qr.parseArray(v)
+		return qr.parseArray(v)
 
 	case VALUE_EDGE:
-		s = qr.parseEdge(v)
+		return qr.parseEdge(v)
 
 	case VALUE_NODE:
-		s = qr.parseNode(v)
+		return qr.parseNode(v)
 
 	case VALUE_PATH:
-		s = qr.parsePath(v)
+		return qr.parsePath(v)
 
 	case VALUE_MAP:
-		s = qr.parseMap(v)
+		return qr.parseMap(v)
 
 	case VALUE_UNKNOWN:
-		panic("Unknown scalar type\n")
+		return nil, errors.New("unknown scalar type")
 	}
 
-	return s
+	return nil, errors.New("unknown scalar type")
 }
 
 func (qr *QueryResult) getStat(stat string) float64 {

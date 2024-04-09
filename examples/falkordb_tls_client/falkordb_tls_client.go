@@ -5,20 +5,18 @@ import (
 	"crypto/x509"
 	"flag"
 	"fmt"
-	"io/ioutil"
 	"log"
 	"os"
 
-	"github.com/RedisGraph/redisgraph-go"
-	"github.com/gomodule/redigo/redis"
+	"github.com/FalkorDB/falkordb-go"
 )
 
 var (
-	tlsCertFile   = flag.String("tls-cert-file", "redis.crt", "A a X.509 certificate to use for authenticating the  server to connected clients, masters or cluster peers. The file should be PEM formatted.")
-	tlsKeyFile    = flag.String("tls-key-file", "redis.key", "A a X.509 privat ekey to use for authenticating the  server to connected clients, masters or cluster peers. The file should be PEM formatted.")
+	tlsCertFile   = flag.String("tls-cert-file", "falkordb.crt", "A a X.509 certificate to use for authenticating the server to connected clients, masters or cluster peers. The file should be PEM formatted.")
+	tlsKeyFile    = flag.String("tls-key-file", "falkordb.key", "A a X.509 privat ekey to use for authenticating the server to connected clients, masters or cluster peers. The file should be PEM formatted.")
 	tlsCaCertFile = flag.String("tls-ca-cert-file", "ca.crt", "A PEM encoded CA's certificate file.")
-	host          = flag.String("host", "127.0.0.1:6379", "Redis host.")
-	password      = flag.String("password", "", "Redis password.")
+	host          = flag.String("host", "127.0.0.1:6379", "FalkorDB host.")
+	password      = flag.String("password", "", "FalkorDB password.")
 )
 
 func exists(filename string) (exists bool) {
@@ -32,7 +30,7 @@ func exists(filename string) (exists bool) {
 }
 
 /*
- * Example of how to establish an SSL connection from your app to the RedisAI Server
+ * Example of how to establish an SSL connection from your app to the FalkorDB Server
  */
 func main() {
 	flag.Parse()
@@ -49,7 +47,7 @@ func main() {
 	}
 
 	// Load CA cert
-	caCert, err := ioutil.ReadFile(*tlsCaCertFile)
+	caCert, err := os.ReadFile(*tlsCaCertFile)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -69,23 +67,20 @@ func main() {
 	// This should be used only for testing.
 	clientTLSConfig.InsecureSkipVerify = true
 
-	pool := &redis.Pool{Dial: func() (redis.Conn, error) {
-		return redis.Dial("tcp", *host,
-			redis.DialPassword(*password),
-			redis.DialTLSConfig(clientTLSConfig),
-			redis.DialUseTLS(true),
-			redis.DialTLSSkipVerify(true),
-		)
-	}}
+	db, _ := falkordb.FalkorDBNew(&falkordb.ConnectionOption{
+		Addr:      *host,
+		Password:  *password,
+		TLSConfig: clientTLSConfig,
+	})
 
-	graph := redisgraph.GraphNew("social", pool.Get())
+	graph := db.SelectGraph("social")
 
-	q := "CREATE (w:WorkPlace {name:'RedisLabs'}) RETURN w"
-	res, _ := graph.Query(q)
+	q := "CREATE (w:WorkPlace {name:'FalkorDB'}) RETURN w"
+	res, _ := graph.Query(q, nil, nil)
 
 	res.Next()
 	r := res.Record()
-	w := r.GetByIndex(0).(*redisgraph.Node)
+	w := r.GetByIndex(0).(*falkordb.Node)
 	fmt.Println(w.Labels[0])
 	// Output: WorkPlace
 }

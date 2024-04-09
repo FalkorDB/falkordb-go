@@ -9,41 +9,21 @@ import (
 	"os"
 
 	"github.com/FalkorDB/falkordb-go"
-	"github.com/gomodule/redigo/redis"
 )
 
-func ExampleGraphNew() {
-	conn, _ := redis.Dial("tcp", "0.0.0.0:6379")
+func ExampleSelectGraph() {
+	db, _ := falkordb.FalkorDBNew(&falkordb.ConnectionOption{Addr: "0.0.0.0:6379"})
 
-	graph := falkordb.GraphNew("social", conn)
+	graph := db.SelectGraph("social")
 
-	q := "CREATE (w:WorkPlace {name:'RedisLabs'}) RETURN w"
-	res, _ := graph.Query(q)
-
-	res.Next()
-	r := res.Record()
-	w := r.GetByIndex(0).(*falkordb.Node)
-	fmt.Println(w.Labels[0])
-	// Output: WorkPlace
-}
-
-func ExampleGraphNew_pool() {
-	host := "localhost:6379"
-	pool := &redis.Pool{Dial: func() (redis.Conn, error) {
-		return redis.Dial("tcp", host)
-	}}
-
-	graph := falkordb.GraphNew("social", pool.Get())
-
-	q := "CREATE (w:WorkPlace {name:'RedisLabs'}) RETURN w"
-	res, _ := graph.Query(q)
+	q := "CREATE (w:WorkPlace {name:'FalkorDB'}) RETURN w"
+	res, _ := graph.Query(q, nil, nil)
 
 	res.Next()
 	r := res.Record()
 	w := r.GetByIndex(0).(*falkordb.Node)
 	fmt.Println(w.Labels[0])
 	// Output: WorkPlace
-
 }
 
 func ExampleGraphNew_tls() {
@@ -87,19 +67,15 @@ func ExampleGraphNew_tls() {
 	// This should be used only for testing.
 	clientTLSConfig.InsecureSkipVerify = true
 
-	pool := &redis.Pool{Dial: func() (redis.Conn, error) {
-		return redis.Dial("tcp", host,
-			redis.DialPassword(password),
-			redis.DialTLSConfig(clientTLSConfig),
-			redis.DialUseTLS(true),
-			redis.DialTLSSkipVerify(true),
-		)
-	}}
+	db, err := falkordb.FalkorDBNew(&falkordb.ConnectionOption{
+		Addr:      host,
+		Password:  password,
+		TLSConfig: clientTLSConfig,
+	})
+	graph := db.SelectGraph("social")
 
-	graph := falkordb.GraphNew("social", pool.Get())
-
-	q := "CREATE (w:WorkPlace {name:'RedisLabs'}) RETURN w"
-	res, _ := graph.Query(q)
+	q := "CREATE (w:WorkPlace {name:'FalkorDB'}) RETURN w"
+	res, _ := graph.Query(q, nil, nil)
 
 	res.Next()
 	r := res.Record()
