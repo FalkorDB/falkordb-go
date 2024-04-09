@@ -29,8 +29,8 @@ func graphNew(Id string, conn *redis.Client) *Graph {
 }
 
 // ExecutionPlan gets the execution plan for given query.
-func (g *Graph) ExecutionPlan(q string) (string, error) {
-	return g.Conn.Do(ctx, "GRAPH.EXPLAIN", g.Id, q).Text()
+func (g *Graph) ExecutionPlan(query string) (string, error) {
+	return g.Conn.Do(ctx, "GRAPH.EXPLAIN", g.Id, query).Text()
 }
 
 // Delete removes the graph.
@@ -61,16 +61,16 @@ func (options *QueryOptions) GetTimeout() int {
 	return options.timeout
 }
 
-func (g *Graph) query(command string, q string, params map[string]interface{}, options *QueryOptions) (*QueryResult, error) {
+func (g *Graph) query(command string, query string, params map[string]interface{}, options *QueryOptions) (*QueryResult, error) {
 	if params != nil {
-		q = BuildParamsHeader(params) + q
+		query = BuildParamsHeader(params) + query
 	}
 	var r interface{}
 	var err error
 	if options != nil && options.timeout >= 0 {
-		r, err = g.Conn.Do(ctx, command, g.Id, q, "--compact", "timeout", options.timeout).Result()
+		r, err = g.Conn.Do(ctx, command, g.Id, query, "--compact", "timeout", options.timeout).Result()
 	} else {
-		r, err = g.Conn.Do(ctx, command, g.Id, q, "--compact").Result()
+		r, err = g.Conn.Do(ctx, command, g.Id, query, "--compact").Result()
 	}
 	if err != nil {
 		return nil, err
@@ -80,30 +80,30 @@ func (g *Graph) query(command string, q string, params map[string]interface{}, o
 }
 
 // Query executes a query against the graph.
-func (g *Graph) Query(q string, params map[string]interface{}, options *QueryOptions) (*QueryResult, error) {
-	return g.query("GRAPH.QUERY", q, params, options)
+func (g *Graph) Query(query string, params map[string]interface{}, options *QueryOptions) (*QueryResult, error) {
+	return g.query("GRAPH.QUERY", query, params, options)
 }
 
 // ROQuery executes a read only query against the graph.
-func (g *Graph) ROQuery(q string, params map[string]interface{}, options *QueryOptions) (*QueryResult, error) {
-	return g.query("GRAPH.RO_QUERY", q, params, options)
+func (g *Graph) ROQuery(query string, params map[string]interface{}, options *QueryOptions) (*QueryResult, error) {
+	return g.query("GRAPH.RO_QUERY", query, params, options)
 }
 
 // Procedures
 
 // CallProcedure invokes procedure.
 func (g *Graph) CallProcedure(procedure string, yield []string, args ...interface{}) (*QueryResult, error) {
-	q := fmt.Sprintf("CALL %s(", procedure)
+	query := fmt.Sprintf("CALL %s(", procedure)
 
 	tmp := make([]string, 0, len(args))
 	for arg := range args {
 		tmp = append(tmp, ToString(arg))
 	}
-	q += fmt.Sprintf("%s)", strings.Join(tmp, ","))
+	query += fmt.Sprintf("%s)", strings.Join(tmp, ","))
 
 	if len(yield) > 0 {
-		q += fmt.Sprintf(" YIELD %s", strings.Join(yield, ","))
+		query += fmt.Sprintf(" YIELD %s", strings.Join(yield, ","))
 	}
 
-	return g.Query(q, nil, nil)
+	return g.Query(query, nil, nil)
 }
