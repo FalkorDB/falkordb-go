@@ -105,6 +105,6 @@ func (db *FalkorDB) ConfigGet(key string) (interface{}, error) {
 
 // Update a DB level configuration.
 // For a list of available configurations see: https://docs.falkordb.com/configuration.html#falkordb-configuration-parameters
-func (db *FalkorDB) ConfigSet(key, value interface{}) error {
+func (db *FalkorDB) ConfigSet(key string, value interface{}) error {
 	return db.Conn.Do(ctx, "GRAPH.CONFIG", "SET", key, value).Err()
 }
