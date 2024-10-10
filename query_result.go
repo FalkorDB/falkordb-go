@@ -46,6 +46,8 @@ const (
 	VALUE_NODE
 	VALUE_PATH
 	VALUE_MAP
+	VALUE_POINT
+	VALUE_VECTORF32
 )
 
 type QueryResultHeader struct {
@@ -279,6 +281,26 @@ func (qr *QueryResult) parseMap(cell interface{}) (map[string]interface{}, error
 	return parsed_map, nil
 }
 
+func (qr *QueryResult) parsePoint(cell interface{}) (map[string]interface{}, error) {
+	var parsed_point = make(map[string]interface{})
+	var array = cell.([]interface{})
+	lat, _ := strconv.ParseFloat(array[0].(string), 64)
+	parsed_point["latitude"] = lat
+	lon, _ := strconv.ParseFloat(array[1].(string), 64)
+	parsed_point["longitude"] = lon
+	return parsed_point, nil
+}
+
+func (qr *QueryResult) parseVectorF32(cell interface{}) ([]float32, error) {
+	var array = cell.([]interface{})
+	var arrayLength = len(array)
+	var res = make([]float32, arrayLength)
+	for i := 0; i < arrayLength; i++ {
+		res[i] = float32(array[i].(float64))
+	}
+	return res, nil
+}
+
 func (qr *QueryResult) parseScalar(cell []interface{}) (interface{}, error) {
 	t := cell[0].(int64)
 	v := cell[1]
@@ -312,6 +334,12 @@ func (qr *QueryResult) parseScalar(cell []interface{}) (interface{}, error) {
 
 	case VALUE_MAP:
 		return qr.parseMap(v)
+
+	case VALUE_POINT:
+		return qr.parsePoint(v)
+
+	case VALUE_VECTORF32:
+		return qr.parseVectorF32(v)
 
 	case VALUE_UNKNOWN:
 		return nil, errors.New("unknown scalar type")
