@@ -283,6 +283,31 @@ func TestPath(t *testing.T) {
 
 }
 
+func TestPoint(t *testing.T) {
+	q := "RETURN point({latitude: 37.0, longitude: -122.0})"
+	res, err := graph.Query(q, nil, nil)
+	if err != nil {
+		t.Error(err)
+	}
+	res.Next()
+	r := res.Record()
+	point := r.GetByIndex(0).(map[string]interface{})
+	assert.Equal(t, point["latitude"], 37.0, "Unexpected latitude value")
+	assert.Equal(t, point["longitude"], -122.0, "Unexpected longitude value")
+}
+
+func TestVectorF32(t *testing.T) {
+	q := "RETURN vecf32([1.0, 2.0, 3.0])"
+	res, err := graph.Query(q, nil, nil)
+	if err != nil {
+		t.Error(err)
+	}
+	res.Next()
+	r := res.Record()
+	vec := r.GetByIndex(0).([]float32)
+	assert.Equal(t, vec, []float32{1.0, 2.0, 3.0}, "Unexpected vector value")
+}
+
 func TestParameterizedQuery(t *testing.T) {
 	createGraph()
 	params := []interface{}{int64(1), 2.3, "str", true, false, nil, []interface{}{int64(0), int64(1), int64(2)}, []interface{}{"0", "1", "2"}}
