@@ -31,19 +31,32 @@ import (
 )
 
 func main() {
-	db, _ := falkordb.FalkorDBNew(&falkordb.ConnectionOption{Addr: "0.0.0.0:6379"})
-
-	graph := db.SelectGraph("social")
-
-	graph.Query("CREATE (:Person {name: 'John Doe', age: 33, gender: 'male', status: 'single'})-[:VISITED]->(:VISITED {name: 'Japan'})", nil, nil)
-
-	query, err := "MATCH (p:Person)-[v:VISITED]->(c:VISITED) RETURN p.name, p.age, c.name"
+	db, err := falkordb.FalkorDBNew(&falkordb.ConnectionOption{Addr: "0.0.0.0:6379"})
 	if err != nil {
+		fmt.Println("Error connecting to the database:", err)
 		os.Exit(1)
 	}
 
-	// result is a QueryResult struct containing the query's generated records and statistics.
-	result, _ := graph.Query(query, nil, nil)
+	graph := db.SelectGraph("social")
+
+	_, err = graph.Query("CREATE (:Person {name: 'John Doe', age: 33, gender: 'male', status: 'single'})-[:VISITED]->(:VISITED {name: 'Japan'})", nil, nil)
+	if err != nil {
+		fmt.Println("Error executing CREATE query:", err)
+		os.Exit(1)
+	}
+
+	query := "MATCH (p:Person)-[v:VISITED]->(c:VISITED) RETURN p.name, p.age, c.name"
+	result, err := graph.Query(query, nil, nil)
+	if err != nil {
+		fmt.Println("Error executing MATCH query:", err)
+		os.Exit(1)
+	}
+
+	// Check if result is nil
+	if result == nil {
+		fmt.Println("No result returned from the query.")
+		os.Exit(1)
+	}
 
 	// Pretty-print the full result set as a table.
 	result.PrettyPrint()
@@ -62,17 +75,18 @@ func main() {
 	}
 
 	// Path matching example.
-	query = "MATCH p = (:person)-[:visited]->(:country) RETURN p"
-	result, err := graph.Query(query, nil, nil)
+	query = "MATCH p = (:Person)-[:VISITED]->(:VISITED) RETURN p"
+	result, err = graph.Query(query, nil, nil)
 	if err != nil {
-		fmt.Println(err)
+		fmt.Println("Error executing MATCH path query:", err)
 		os.Exit(1)
 	}
-	fmt.Println("Pathes of persons visiting countries:")
+
+	fmt.Println("Paths of persons visiting countries:")
 	for result.Next() {
 		r := result.Record()
-		p, ok := r.GetByIndex(0).(rg.Path)
-		fmt.Printf("%s %v\n", p, ok)
+		p, ok := r.GetByIndex(0).(falkordb.Path)
+		fmt.Printf("%v %v\n", p, ok)
 	}
 }
 ```
