@@ -35,13 +35,13 @@ func main() {
 
 	graph := db.SelectGraph("social")
 
-	graph.Query("CREATE (:Person {name: 'John Doe', age: 33, gender: 'male', status: 'single'})-[:VISITED]->(:VISITED {name: 'Japan'})", nil, nil)
-
-	query, err := "MATCH (p:Person)-[v:VISITED]->(c:VISITED) RETURN p.name, p.age, c.name"
+	query := "CREATE (:Person {name: 'John Doe', age: 33, gender: 'male', status: 'single'})-[:VISITED]->(:VISITED {name: 'Japan'})"
+	_, err := graph.Query(query, nil, nil)
 	if err != nil {
 		os.Exit(1)
 	}
 
+	query = "MATCH (p:Person)-[v:VISITED]->(c:VISITED) RETURN p.name, p.age, c.name"
 	// result is a QueryResult struct containing the query's generated records and statistics.
 	result, _ := graph.Query(query, nil, nil)
 
@@ -63,7 +63,7 @@ func main() {
 
 	// Path matching example.
 	query = "MATCH p = (:person)-[:visited]->(:country) RETURN p"
-	result, err := graph.Query(query, nil, nil)
+	result, err = graph.Query(query, nil, nil)
 	if err != nil {
 		fmt.Println(err)
 		os.Exit(1)
@@ -71,7 +71,7 @@ func main() {
 	fmt.Println("Pathes of persons visiting countries:")
 	for result.Next() {
 		r := result.Record()
-		p, ok := r.GetByIndex(0).(rg.Path)
+		p, ok := r.GetByIndex(0).(falkordb.Path)
 		fmt.Printf("%s %v\n", p, ok)
 	}
 }
