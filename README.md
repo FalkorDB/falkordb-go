@@ -11,9 +11,17 @@
 
 ## Installation
 
+
+Make sure to initialize a Go module:
+
+```
+go mod init github.com/my/repo
+```
+
 Simply do:
+
 ```sh
-$ go get github.com/FalkorDB/falkordb-go
+$ go get github.com/falkordb/falkordb-go
 ```
 
 ## Usage
