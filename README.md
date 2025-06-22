@@ -34,7 +34,6 @@ package main
 import (
 	"fmt"
 	"log"
-	"os"
 
 	"github.com/falkordb/falkordb-go"
 )
