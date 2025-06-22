@@ -43,13 +43,13 @@ func main() {
 
 	graph := db.SelectGraph("social")
 
-	query := "CREATE (:Person {name: 'John Doe', age: 33, gender: 'male', status: 'single'})-[:VISITED]->(:VISITED {name: 'Japan'})"
+	query := "CREATE (:Person {name: 'John Doe', age: 33, gender: 'male', status: 'single'})-[:VISITED]->(:Country {name: 'Japan'})"
 	_, err := graph.Query(query, nil, nil)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	query = "MATCH (p:Person)-[v:VISITED]->(c:VISITED) RETURN p.name, p.age, c.name"
+	query = "MATCH (p:Person)-[v:VISITED]->(c:Country) RETURN p.name, p.age, c.name"
 	// result is a QueryResult struct containing the query's generated records and statistics.
 	result, err := graph.Query(query, nil, nil)
 	if err != nil {
@@ -73,7 +73,7 @@ func main() {
 	}
 
 	// Path matching example.
-	query = "MATCH p = (:person)-[:visited]->(:country) RETURN p"
+	query = "MATCH p = (:Person)-[:VISITED]->(:Country) RETURN p"
 	result, err = graph.Query(query, nil, nil)
 	if err != nil {
 		log.Fatal(err)
