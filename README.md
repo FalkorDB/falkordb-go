@@ -11,14 +11,22 @@
 
 ## Installation
 
+
+Make sure to initialize a Go module:
+
+```
+go mod init github.com/my/repo
+```
+
 Simply do:
+
 ```sh
-$ go get github.com/FalkorDB/falkordb-go
+$ go get github.com/falkordb/falkordb-go
 ```
 
 ## Usage
 
-The complete `falkordb-go` API is documented on [GoDoc](https://godoc.org/github.com/FalkorDB/falkordb-go).
+The complete `falkordb-go` API is documented on [GoDoc](https://godoc.org/github.com/falkordb/falkordb-go).
 
 ```go
 package main
@@ -27,7 +35,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/FalkorDB/falkordb-go"
+	"github.com/falkordb/falkordb-go"
 )
 
 func main() {

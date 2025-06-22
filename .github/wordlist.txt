@@ -1,0 +1,12 @@
+falkordb
+FalkorDB
+Golang
+GoDoc
+struct
+localhost
+socio
+sexualized
+html
+https
+www
+faq
