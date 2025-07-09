@@ -3,6 +3,7 @@ package falkordb
 import (
 	"os"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -307,7 +308,41 @@ func TestVectorF32(t *testing.T) {
 	vec := r.GetByIndex(0).([]float32)
 	assert.Equal(t, vec, []float32{1.0, 2.0, 3.0}, "Unexpected vector value")
 }
+func TestGetTime(t *testing.T) {
+	q := "RETURN localtime({hour: 12}) AS time"
+	res, err := graph.Query(q, nil, nil)
+	if err != nil {
+		t.Error(err)
+	}
+	res.Next()
+	r := res.Record()
+	timeValue := r.GetByIndex(0).(time.Time)
+	assert.Equal(t, timeValue.Hour(), 12, "Unexpected Time value")
+}
 
+func TestGetDate(t *testing.T) {
+	q := "RETURN date({year : 1984}) as date"
+	res, err := graph.Query(q, nil, nil)
+	if err != nil {
+		t.Error(err)
+	}
+	res.Next()
+	r := res.Record()
+	dateValue := r.GetByIndex(0).(time.Time)
+	assert.Equal(t, dateValue.Year(), 1984, "Unexpected Date value")
+}
+
+func TestGetDateTime(t *testing.T) {
+	q := "RETURN localdatetime({year : 1984}) as date"
+	res, err := graph.Query(q, nil, nil)
+	if err != nil {
+		t.Error(err)
+	}
+	res.Next()
+	r := res.Record()
+	dateTimeValue := r.GetByIndex(0).(time.Time)
+	assert.Equal(t, dateTimeValue.Year(), 1984, "Unexpected DateTime value")
+}
 func TestParameterizedQuery(t *testing.T) {
 	createGraph()
 	params := []interface{}{int64(1), 2.3, "str", true, false, nil, []interface{}{int64(0), int64(1), int64(2)}, []interface{}{"0", "1", "2"}}

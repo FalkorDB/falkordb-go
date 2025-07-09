@@ -6,6 +6,7 @@ import (
 	"os"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/olekukonko/tablewriter"
 )
@@ -48,6 +49,9 @@ const (
 	VALUE_MAP
 	VALUE_POINT
 	VALUE_VECTORF32
+	VALUE_DATETIME // Deprecated, use VALUE_POINT instead
+	VALUE_DATE
+	VALUE_TIME
 )
 
 type QueryResultHeader struct {
@@ -340,6 +344,15 @@ func (qr *QueryResult) parseScalar(cell []interface{}) (interface{}, error) {
 
 	case VALUE_VECTORF32:
 		return qr.parseVectorF32(v)
+
+	case VALUE_DATETIME:
+		return time.Unix(v.(int64), 0), nil
+
+	case VALUE_DATE:
+		return time.Unix(v.(int64), 0), nil
+
+	case VALUE_TIME:
+		return time.UnixMilli(v.(int64)), nil
 
 	case VALUE_UNKNOWN:
 		return nil, errors.New("unknown scalar type")
