@@ -321,7 +321,7 @@ func TestGetTime(t *testing.T) {
 }
 
 func TestGetDate(t *testing.T) {
-	q := "RETURN date({year : 1984}) as date"
+	q := "RETURN date({year: 1984, month: 1, day: 1}) as date"
 	res, err := graph.Query(q, nil, nil)
 	if err != nil {
 		t.Error(err)
