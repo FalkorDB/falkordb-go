@@ -64,19 +64,19 @@ func checkQueryResults(t *testing.T, res *QueryResult) {
 	r := res.Record()
 
 	s, err := r.GetByIndex(0)
-	assert.NotErrorIs(t, err, ErrRecordNoValue, "First column should contain something.")
+	assert.NoError(t, err, "First column should contain something.")
 
 	sNode, ok := s.(*Node)
 	assert.True(t, ok, "First column should contain nodes.")
 
 	e, err := r.GetByIndex(1)
-	assert.NotErrorIs(t, err, ErrRecordNoValue, "Second column should contain something.")
+	assert.NoError(t, err, "Second column should contain something.")
 
 	eEdge, ok := e.(*Edge)
 	assert.True(t, ok, "Second column should contain edges.")
 
 	d, err := r.GetByIndex(2)
-	assert.NotErrorIs(t, err, ErrRecordNoValue, "Third column should contain something.")
+	assert.NoError(t, err, "Third column should contain something.")
 
 	dNode, ok := d.(*Node)
 	assert.True(t, ok, "Third column should contain nodes.")
@@ -120,8 +120,11 @@ func TestCreateQuery(t *testing.T) {
 	assert.False(t, res.Empty(), "Expecting resultset to include a single node.")
 	res.Next()
 	r := res.Record()
-	w, _ := r.GetByIndex(0)
-	wNode := w.(*Node)
+	w, err := r.GetByIndex(0)
+	assert.NoError(t, err, "Expecting a single node to be created.")
+
+	wNode, ok := w.(*Node)
+	assert.True(t, ok, "Expecting a single node to contain work place.")
 	assert.Equal(t, wNode.Labels[0], "WorkPlace", "Unexpected node label.")
 }
 
