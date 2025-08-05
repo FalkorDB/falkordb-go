@@ -48,6 +48,36 @@ func TestRecord_GetByIndex(t *testing.T) {
 			want:    "buzz",
 			wantErr: assert.NoError,
 		},
+		{
+			name: "GetByIndex valid index 0",
+			fields: fields{
+				keys:   []string{"foo"},
+				values: []interface{}{"bar"},
+			},
+			args:    args{index: 0},
+			want:    "bar",
+			wantErr: assert.NoError,
+		},
+		{
+			name: "GetByIndex out of bounds",
+			fields: fields{
+				keys:   []string{"foo"},
+				values: []interface{}{"bar"},
+			},
+			args:    args{index: 5},
+			want:    nil,
+			wantErr: assert.Error,
+		},
+		{
+			name: "GetByIndex negative index",
+			fields: fields{
+				keys:   []string{"foo"},
+				values: []interface{}{"bar"},
+			},
+			args:    args{index: -1},
+			want:    nil,
+			wantErr: assert.Error,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

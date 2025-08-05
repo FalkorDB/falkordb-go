@@ -47,7 +47,7 @@ func (r *Record) GetByIndex(index int) (interface{}, error) {
 		return nil, fmt.Errorf("record is nil: %w", ErrRecordNoValue)
 	}
 
-	if index >= len(r.values) {
+	if index >= len(r.values) || index < 0 {
 		return nil, ErrRecordNoValue
 	}
 

@@ -80,7 +80,11 @@ func main() {
 
 	res.Next()
 	r := res.Record()
-	w := r.GetByIndex(0).(*falkordb.Node)
+	wIface, err := r.GetByIndex(0)
+	if err != nil {
+		log.Fatal(err)
+	}
+	w := wIface.(*falkordb.Node)
 	fmt.Println(w.Labels[0])
 	// Output: WorkPlace
 }
