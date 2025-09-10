@@ -343,6 +343,20 @@ func TestGetDateTime(t *testing.T) {
 	dateTimeValue := r.GetByIndex(0).(time.Time)
 	assert.Equal(t, dateTimeValue.Year(), 1984, "Unexpected DateTime value")
 }
+
+func TestGetDuration(t *testing.T) {
+	q := "RETURN duration({hours: 2, minutes: 30}) AS duration"
+	res, err := graph.Query(q, nil, nil)
+	if err != nil {
+		t.Error(err)
+	}
+	res.Next()
+	r := res.Record()
+	durationValue := r.GetByIndex(0).(time.Duration)
+	expectedDuration := 2*time.Hour + 30*time.Minute
+	assert.Equal(t, durationValue, expectedDuration, "Unexpected Duration value")
+}
+
 func TestParameterizedQuery(t *testing.T) {
 	createGraph()
 	params := []interface{}{int64(1), 2.3, "str", true, false, nil, []interface{}{int64(0), int64(1), int64(2)}, []interface{}{"0", "1", "2"}}

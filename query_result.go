@@ -52,6 +52,7 @@ const (
 	VALUE_DATETIME
 	VALUE_DATE
 	VALUE_TIME
+	VALUE_DURATION
 )
 
 type QueryResultHeader struct {
@@ -353,6 +354,10 @@ func (qr *QueryResult) parseScalar(cell []interface{}) (interface{}, error) {
 
 	case VALUE_TIME:
 		return time.UnixMilli(v.(int64)), nil
+
+	case VALUE_DURATION:
+		// FalkorDB returns duration values in seconds, convert to nanoseconds
+		return time.Duration(v.(int64)) * time.Second, nil
 
 	case VALUE_UNKNOWN:
 		return nil, errors.New("unknown scalar type")
