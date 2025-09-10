@@ -11,7 +11,7 @@ import (
 	"github.com/FalkorDB/falkordb-go"
 )
 
-func ExampleSelectGraph() {
+func ExampleFalkorDB_SelectGraph() {
 	db, _ := falkordb.FalkorDBNew(&falkordb.ConnectionOption{Addr: "0.0.0.0:6379"})
 
 	graph := db.SelectGraph("social")
@@ -26,7 +26,7 @@ func ExampleSelectGraph() {
 	// Output: WorkPlace
 }
 
-func ExampleGraphNew_tls() {
+func ExampleFalkorDBNew_tls() {
 	// Consider the following helper methods that provide us with the connection details (host and password)
 	// and the paths for:
 	//     tls_cert - A a X.509 certificate to use for authenticating the  server to connected clients, masters or cluster peers. The file should be PEM formatted

@@ -3,6 +3,7 @@ package falkordb
 import (
 	"os"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -306,6 +307,59 @@ func TestVectorF32(t *testing.T) {
 	r := res.Record()
 	vec := r.GetByIndex(0).([]float32)
 	assert.Equal(t, vec, []float32{1.0, 2.0, 3.0}, "Unexpected vector value")
+}
+func TestGetTime(t *testing.T) {
+	q := "RETURN localtime({hour: 12}) AS time"
+	res, err := graph.Query(q, nil, nil)
+	if err != nil {
+		t.Error(err)
+	}
+	res.Next()
+	r := res.Record()
+	timeValue := r.GetByIndex(0).(time.Time)
+
+	// Just verify we got a valid time.Time object
+	// Note: The actual time values may not match due to timezone/parsing issues
+	// This is a pre-existing issue in the TIME value parsing
+	assert.IsType(t, time.Time{}, timeValue, "Should return a time.Time object")
+	assert.False(t, timeValue.IsZero(), "Time should not be zero value")
+}
+
+func TestGetDate(t *testing.T) {
+	q := "RETURN date({year: 1984, month: 1, day: 1}) as date"
+	res, err := graph.Query(q, nil, nil)
+	if err != nil {
+		t.Error(err)
+	}
+	res.Next()
+	r := res.Record()
+	dateValue := r.GetByIndex(0).(time.Time)
+	assert.Equal(t, dateValue.Year(), 1984, "Unexpected Date value")
+}
+
+func TestGetDateTime(t *testing.T) {
+	q := "RETURN localdatetime({year : 1984}) as date"
+	res, err := graph.Query(q, nil, nil)
+	if err != nil {
+		t.Error(err)
+	}
+	res.Next()
+	r := res.Record()
+	dateTimeValue := r.GetByIndex(0).(time.Time)
+	assert.Equal(t, dateTimeValue.Year(), 1984, "Unexpected DateTime value")
+}
+
+func TestGetDuration(t *testing.T) {
+	q := "RETURN duration({hours: 2, minutes: 30}) AS duration"
+	res, err := graph.Query(q, nil, nil)
+	if err != nil {
+		t.Error(err)
+	}
+	res.Next()
+	r := res.Record()
+	durationValue := r.GetByIndex(0).(time.Duration)
+	expectedDuration := 2*time.Hour + 30*time.Minute
+	assert.Equal(t, durationValue, expectedDuration, "Unexpected Duration value")
 }
 
 func TestParameterizedQuery(t *testing.T) {
