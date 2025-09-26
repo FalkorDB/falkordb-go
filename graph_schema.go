@@ -35,7 +35,12 @@ func (gs *GraphSchema) refresh_labels() error {
 	gs.labels = make([]string, len(qr.results))
 
 	for idx, r := range qr.results {
-		gs.labels[idx] = r.GetByIndex(0).(string)
+		label, err := r.GetByIndex(0)
+		if err != nil {
+			return err
+		}
+
+		gs.labels[idx] = label.(string)
 	}
 	return nil
 }
@@ -49,7 +54,11 @@ func (gs *GraphSchema) refresh_relationships() error {
 	gs.relationships = make([]string, len(qr.results))
 
 	for idx, r := range qr.results {
-		gs.relationships[idx] = r.GetByIndex(0).(string)
+		relationship, err := r.GetByIndex(0)
+		if err != nil {
+			return err
+		}
+		gs.relationships[idx] = relationship.(string)
 	}
 	return nil
 }
@@ -63,7 +72,11 @@ func (gs *GraphSchema) refresh_properties() error {
 	gs.properties = make([]string, len(qr.results))
 
 	for idx, r := range qr.results {
-		gs.properties[idx] = r.GetByIndex(0).(string)
+		property, err := r.GetByIndex(0)
+		if err != nil {
+			return err
+		}
+		gs.properties[idx] = property.(string)
 	}
 	return nil
 }
