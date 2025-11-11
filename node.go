@@ -37,7 +37,7 @@ func (n *Node) SetProperty(key string, value interface{}) {
 
 // GetProperty retrieves property from node
 func (n Node) GetProperty(key string) interface{} {
-	v, _ := n.Properties[key]
+	v := n.Properties[key]
 	return v
 }
 

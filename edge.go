@@ -40,7 +40,7 @@ func (e *Edge) SetProperty(key string, value interface{}) {
 
 // GetProperty retrieves property from edge
 func (e *Edge) GetProperty(key string) interface{} {
-	v, _ := e.Properties[key]
+	v := e.Properties[key]
 	return v
 }
 
