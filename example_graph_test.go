@@ -4,7 +4,6 @@ import (
 	"crypto/tls"
 	"crypto/x509"
 	"fmt"
-	"io/ioutil"
 	"log"
 	"os"
 
@@ -47,7 +46,7 @@ func ExampleGraphNew_tls() {
 	}
 
 	// Load CA cert
-	caCert, err := ioutil.ReadFile(tls_cacert)
+	caCert, err := os.ReadFile(tls_cacert)
 	if err != nil {
 		log.Fatal(err)
 	}

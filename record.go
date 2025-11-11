@@ -1,14 +1,14 @@
 package falkordb
 
 type Record struct {
-	values	[]interface{}
-	keys	[]string
+	values []interface{}
+	keys   []string
 }
 
 func recordNew(values []interface{}, keys []string) *Record {
-	r := &Record {
+	r := &Record{
 		values: values,
-		keys: keys,
+		keys:   keys,
 	}
 
 	return r
@@ -33,7 +33,7 @@ func (r *Record) Get(key string) (interface{}, bool) {
 }
 
 func (r *Record) GetByIndex(index int) interface{} {
-	if(index < len(r.values)) {
+	if index < len(r.values) {
 		return r.values[index]
 	} else {
 		return nil
