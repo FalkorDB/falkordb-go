@@ -4,7 +4,7 @@ go 1.21
 
 require (
 	github.com/olekukonko/tablewriter v1.1.1
-	github.com/redis/go-redis/v9 v9.16.0
+	github.com/redis/go-redis/v9 v9.17.2
 	github.com/stretchr/testify v1.11.1
 )
 
