@@ -48,9 +48,9 @@ func (r *Record) GetByIndex(index int) (interface{}, error) {
   }
 
 	if index < len(r.values) {
-		return r.values[index]
+		return r.values[index], nil
 	} else {
-		return nil
+		return nil, ErrRecordNoValue
 	}
 
 	if index >= len(r.values) || index < 0 {
