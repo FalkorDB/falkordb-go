@@ -11,14 +11,17 @@ import (
 var ctx = context.Background()
 
 type FalkorDB struct {
-	Conn *redis.Client
+	Conn redis.UniversalClient
 }
 
 type ConnectionOption = redis.Options
 
-func isSentinel(conn *redis.Client) bool {
-	info, _ := conn.InfoMap(ctx, "server").Result()
-	return info["Server"]["redis_mode"] == "sentinel"
+func isSentinel(conn redis.UniversalClient) bool {
+	if c, ok := conn.(*redis.Client); ok {
+		info, _ := c.InfoMap(ctx, "server").Result()
+		return info["Server"]["redis_mode"] == "sentinel"
+	}
+	return false
 }
 
 // FalkorDB Class for interacting with a FalkorDB server.
