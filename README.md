@@ -21,7 +21,7 @@ go mod init github.com/my/repo
 Simply do:
 
 ```sh
-$ go get github.com/falkordb/falkordb-go
+$ go get github.com/FalkorDB/falkordb-go/v2
 ```
 
 ## Usage
@@ -35,11 +35,12 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/falkordb/falkordb-go"
+	"github.com/FalkorDB/falkordb-go/v2"
 )
 
 func main() {
 	db, _ := falkordb.FalkorDBNew(&falkordb.ConnectionOption{Addr: "0.0.0.0:6379"})
+	// db, _ := falkodb.FalkorDBNewCluster(&falkordb.ConnectionClusterOption{Addrs: "0.0.0.0:6379"})
 
 	graph := db.SelectGraph("social")
 
