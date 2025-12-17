@@ -16,6 +16,8 @@ type FalkorDB struct {
 
 type ConnectionOption = redis.Options
 
+type ConnectionClusterOption = redis.ClusterOptions
+
 func isSentinel(conn redis.UniversalClient) bool {
 	if c, ok := conn.(*redis.Client); ok {
 		info, _ := c.InfoMap(ctx, "server").Result()
@@ -56,6 +58,12 @@ func FalkorDBNew(options *ConnectionOption) (*FalkorDB, error) {
 			PoolTimeout:      options.PoolTimeout,
 		})
 	}
+	return &FalkorDB{Conn: db}, nil
+}
+
+// FalkorDBNewCluster creates a new FalkorDB cluster instance.
+func FalkorDBNewCluster(options *ConnectionClusterOption) (*FalkorDB, error) {
+	db := redis.NewClusterClient(options)
 	return &FalkorDB{Conn: db}, nil
 }
 
