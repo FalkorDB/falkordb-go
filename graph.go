@@ -15,12 +15,12 @@ type QueryOptions struct {
 // Graph represents a graph, which is a collection of nodes and edges.
 type Graph struct {
 	Id     string
-	Conn   *redis.Client
+	Conn   redis.UniversalClient
 	schema GraphSchema
 }
 
 // New creates a new graph.
-func graphNew(Id string, conn *redis.Client) *Graph {
+func graphNew(Id string, conn redis.UniversalClient) *Graph {
 	g := new(Graph)
 	g.Id = Id
 	g.Conn = conn
