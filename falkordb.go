@@ -19,11 +19,19 @@ type ConnectionOption = redis.Options
 type ConnectionClusterOption = redis.ClusterOptions
 
 func isSentinel(conn redis.UniversalClient) bool {
-	if c, ok := conn.(*redis.Client); ok {
-		info, _ := c.InfoMap(ctx, "server").Result()
-		return info["Server"]["redis_mode"] == "sentinel"
+	c, ok := conn.(*redis.Client)
+	if !ok {
+		return false
 	}
-	return false
+	info, err := c.InfoMap(ctx, "server").Result()
+	if err != nil {
+		return false
+	}
+	svr, ok := info["Server"]
+	if !ok {
+		return false
+	}
+	return svr["redis_mode"] == "sentinel"
 }
 
 // FalkorDB Class for interacting with a FalkorDB server.
