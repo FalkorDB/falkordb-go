@@ -1,6 +1,7 @@
 package falkordb
 
 import (
+	"fmt"
 	"os"
 	"testing"
 
@@ -62,28 +63,39 @@ func checkQueryResults(t *testing.T, res *QueryResult) {
 	res.Next()
 	r := res.Record()
 
-	s, ok := r.GetByIndex(0).(*Node)
+	s, err := r.GetByIndex(0)
+	assert.NoError(t, err, "First column should contain something.")
+
+	sNode, ok := s.(*Node)
 	assert.True(t, ok, "First column should contain nodes.")
-	e, ok := r.GetByIndex(1).(*Edge)
+
+	e, err := r.GetByIndex(1)
+	assert.NoError(t, err, "Second column should contain something.")
+
+	eEdge, ok := e.(*Edge)
 	assert.True(t, ok, "Second column should contain edges.")
-	d, ok := r.GetByIndex(2).(*Node)
+
+	d, err := r.GetByIndex(2)
+	assert.NoError(t, err, "Third column should contain something.")
+
+	dNode, ok := d.(*Node)
 	assert.True(t, ok, "Third column should contain nodes.")
 
-	assert.Equal(t, s.Labels[0], "Person", "Node should be of type 'Person'")
-	assert.Equal(t, e.Relation, "Visited", "Edge should be of relation type 'Visited'")
-	assert.Equal(t, d.Labels[0], "Country", "Node should be of type 'Country'")
+	assert.Equal(t, sNode.Labels[0], "Person", "Node should be of type 'Person'")
+	assert.Equal(t, eEdge.Relation, "Visited", "Edge should be of relation type 'Visited'")
+	assert.Equal(t, dNode.Labels[0], "Country", "Node should be of type 'Country'")
 
-	assert.Equal(t, len(s.Properties), 4, "Person node should have 4 properties")
+	assert.Equal(t, len(sNode.Properties), 4, "Person node should have 4 properties")
 
-	assert.Equal(t, s.GetProperty("name"), "John Doe", "Unexpected property value.")
-	assert.Equal(t, s.GetProperty("age"), int64(33), "Unexpected property value.")
-	assert.Equal(t, s.GetProperty("gender"), "male", "Unexpected property value.")
-	assert.Equal(t, s.GetProperty("status"), "single", "Unexpected property value.")
+	assert.Equal(t, sNode.GetProperty("name"), "John Doe", "Unexpected property value.")
+	assert.Equal(t, sNode.GetProperty("age"), int64(33), "Unexpected property value.")
+	assert.Equal(t, sNode.GetProperty("gender"), "male", "Unexpected property value.")
+	assert.Equal(t, sNode.GetProperty("status"), "single", "Unexpected property value.")
 
-	assert.Equal(t, e.GetProperty("year"), int64(2017), "Unexpected property value.")
+	assert.Equal(t, eEdge.GetProperty("year"), int64(2017), "Unexpected property value.")
 
-	assert.Equal(t, d.GetProperty("name"), "Japan", "Unexpected property value.")
-	assert.Equal(t, d.GetProperty("population"), int64(126800000), "Unexpected property value.")
+	assert.Equal(t, dNode.GetProperty("name"), "Japan", "Unexpected property value.")
+	assert.Equal(t, dNode.GetProperty("population"), int64(126800000), "Unexpected property value.")
 }
 
 func TestCreateQuery(t *testing.T) {
@@ -108,8 +120,12 @@ func TestCreateQuery(t *testing.T) {
 	assert.False(t, res.Empty(), "Expecting resultset to include a single node.")
 	res.Next()
 	r := res.Record()
-	w := r.GetByIndex(0).(*Node)
-	assert.Equal(t, w.Labels[0], "WorkPlace", "Unexpected node label.")
+	w, err := r.GetByIndex(0)
+	assert.NoError(t, err, "Expecting a single node to be created.")
+
+	wNode, ok := w.(*Node)
+	assert.True(t, ok, "Expecting a single node to contain work place.")
+	assert.Equal(t, wNode.Labels[0], "WorkPlace", "Unexpected node label.")
 }
 
 func TestCreateROQueryFailure(t *testing.T) {
@@ -154,7 +170,9 @@ func TestArray(t *testing.T) {
 	res.Next()
 	r := res.Record()
 	assert.Equal(t, len(res.results), 1, "expecting 1 result record")
-	assert.Equal(t, []interface{}{int64(0), int64(1), int64(2)}, r.GetByIndex(0))
+	val, err := r.GetByIndex(0)
+	assert.Equal(t, []interface{}{int64(0), int64(1), int64(2)}, val)
+	assert.NoError(t, err)
 
 	q = "unwind([0,1,2]) as x return x"
 	res, err = graph.Query(q, nil, nil)
@@ -166,7 +184,18 @@ func TestArray(t *testing.T) {
 	i := 0
 	for res.Next() {
 		r = res.Record()
-		assert.Equal(t, int64(i), r.GetByIndex(0))
+		valIface, err := r.GetByIndex(0)
+		if err != nil {
+			t.Error(fmt.Errorf("error getting value: %v", err))
+			return
+		}
+		val, ok := valIface.(int64)
+		if !ok {
+			t.Error("Expected int64 result record")
+			return
+		}
+		assert.Equal(t, int64(i), val, "expecting result record")
+		assert.NoError(t, err)
 		i++
 	}
 
@@ -191,7 +220,11 @@ func TestArray(t *testing.T) {
 
 	res.Next()
 	r = res.Record()
-	arr := r.GetByIndex(0).([]interface{})
+	arrIface, err := r.GetByIndex(0)
+	assert.NoError(t, err)
+
+	arr, ok := arrIface.([]interface{})
+	assert.True(t, ok)
 
 	assert.Equal(t, 2, len(arr))
 
@@ -223,7 +256,10 @@ func TestMap(t *testing.T) {
 	}
 	res.Next()
 	r := res.Record()
-	mapval := r.GetByIndex(0).(map[string]interface{})
+	mapvalIface, err := r.GetByIndex(0)
+	assert.NoError(t, err)
+	mapval, ok := mapvalIface.(map[string]interface{})
+	assert.True(t, ok)
 
 	inner_map := map[string]interface{}{"x": []interface{}{int64(1)}}
 	expected := map[string]interface{}{"val_1": int64(5), "val_2": "str", "inner": inner_map}
@@ -236,7 +272,10 @@ func TestMap(t *testing.T) {
 	}
 	res.Next()
 	r = res.Record()
-	mapval = r.GetByIndex(0).(map[string]interface{})
+	mapvalIface, err = r.GetByIndex(0)
+	assert.NoError(t, err)
+	mapval, ok = mapvalIface.(map[string]interface{})
+	assert.True(t, ok)
 
 	expected = map[string]interface{}{"name": "Japan"}
 	assert.Equal(t, mapval, expected, "expecting a map projection")
@@ -255,7 +294,9 @@ func TestPath(t *testing.T) {
 	res.Next()
 	r := res.Record()
 
-	p, ok := r.GetByIndex(0).(Path)
+	pIface, err := r.GetByIndex(0)
+	assert.NoError(t, err)
+	p, ok := pIface.(Path)
 	assert.True(t, ok, "First column should contain path.")
 
 	assert.Equal(t, 2, p.NodesCount(), "Path should contain two nodes")
@@ -291,7 +332,10 @@ func TestPoint(t *testing.T) {
 	}
 	res.Next()
 	r := res.Record()
-	point := r.GetByIndex(0).(map[string]interface{})
+	pointIface, err := r.GetByIndex(0)
+	assert.NoError(t, err)
+	point := pointIface.(map[string]interface{})
+
 	assert.Equal(t, point["latitude"], 37.0, "Unexpected latitude value")
 	assert.Equal(t, point["longitude"], -122.0, "Unexpected longitude value")
 }
@@ -304,7 +348,10 @@ func TestVectorF32(t *testing.T) {
 	}
 	res.Next()
 	r := res.Record()
-	vec := r.GetByIndex(0).([]float32)
+	vecIface, err := r.GetByIndex(0)
+	assert.NoError(t, err)
+	vec, ok := vecIface.([]float32)
+	assert.True(t, ok)
 	assert.Equal(t, vec, []float32{1.0, 2.0, 3.0}, "Unexpected vector value")
 }
 
@@ -320,7 +367,9 @@ func TestParameterizedQuery(t *testing.T) {
 			t.Error(err)
 		}
 		res.Next()
-		assert.Equal(t, res.Record().GetByIndex(0), params[index], "Unexpected parameter value")
+		rIface, err := res.Record().GetByIndex(0)
+		assert.NoError(t, err)
+		assert.Equal(t, rIface, params[index], "Unexpected parameter value")
 	}
 }
 
@@ -424,7 +473,10 @@ func TestMultiLabelNode(t *testing.T) {
 
 	res.Next()
 	r := res.Record()
-	n := r.GetByIndex(0).(*Node)
+	nIface, err := r.GetByIndex(0)
+	assert.NoError(t, err)
+	n, ok := nIface.(*Node)
+	assert.True(t, ok)
 
 	// expecting 2 labels
 	assert.Equal(t, len(n.Labels), 2, "expecting 2 labels")
