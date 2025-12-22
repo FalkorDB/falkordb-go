@@ -45,12 +45,6 @@ func (r *Record) Get(key string) (interface{}, bool) {
 func (r *Record) GetByIndex(index int) (interface{}, error) {
 	if r == nil {
 		return nil, fmt.Errorf("record is nil: %w", ErrRecordNoValue)
-  }
-
-	if index < len(r.values) {
-		return r.values[index], nil
-	} else {
-		return nil, ErrRecordNoValue
 	}
 
 	if index >= len(r.values) || index < 0 {
