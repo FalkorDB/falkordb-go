@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/olekukonko/tablewriter"
+	"github.com/olekukonko/tablewriter/tw"
 )
 
 const (
@@ -402,9 +403,8 @@ func (qr *QueryResult) PrettyPrint() {
 		return
 	}
 
-	table := tablewriter.NewWriter(os.Stdout)
-	table.SetAutoFormatHeaders(false)
-	table.SetHeader(qr.header.column_names)
+	table := tablewriter.NewTable(os.Stdout, tablewriter.WithHeaderAutoFormat(tw.Off))
+	table.Header(qr.header.column_names)
 	row_count := len(qr.results)
 	col_count := len(qr.header.column_names)
 	if len(qr.results) > 0 {
@@ -416,7 +416,7 @@ func (qr *QueryResult) PrettyPrint() {
 				results[i][j] = fmt.Sprint(elem)
 			}
 		}
-		table.AppendBulk(results)
+		table.Bulk(results)
 	} else {
 		table.Append([]string{"No data returned."})
 	}
