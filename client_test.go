@@ -363,7 +363,11 @@ func TestGetTime(t *testing.T) {
 	}
 	res.Next()
 	r := res.Record()
-	timeValue := r.GetByIndex(0).(time.Time)
+	val, err := r.GetByIndex(0)
+	if err != nil {
+		t.Error(err)
+	}
+	timeValue := val.(time.Time)
 
 	// Just verify we got a valid time.Time object
 	// Note: The actual time values may not match due to timezone/parsing issues
@@ -380,7 +384,11 @@ func TestGetDate(t *testing.T) {
 	}
 	res.Next()
 	r := res.Record()
-	dateValue := r.GetByIndex(0).(time.Time)
+	val, err := r.GetByIndex(0)
+	if err != nil {
+		t.Error(err)
+	}
+	dateValue := val.(time.Time)
 	assert.Equal(t, dateValue.Year(), 1984, "Unexpected Date value")
 }
 
@@ -392,7 +400,11 @@ func TestGetDateTime(t *testing.T) {
 	}
 	res.Next()
 	r := res.Record()
-	dateTimeValue := r.GetByIndex(0).(time.Time)
+	val, err := r.GetByIndex(0)
+	if err != nil {
+		t.Error(err)
+	}
+	dateTimeValue := val.(time.Time)
 	assert.Equal(t, dateTimeValue.Year(), 1984, "Unexpected DateTime value")
 }
 
@@ -404,7 +416,11 @@ func TestGetDuration(t *testing.T) {
 	}
 	res.Next()
 	r := res.Record()
-	durationValue := r.GetByIndex(0).(time.Duration)
+	val, err := r.GetByIndex(0)
+	if err != nil {
+		t.Error(err)
+	}
+	durationValue := val.(time.Duration)
 	expectedDuration := 2*time.Hour + 30*time.Minute
 	assert.Equal(t, durationValue, expectedDuration, "Unexpected Duration value")
 }
