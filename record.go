@@ -1,5 +1,7 @@
 package falkordb
 
+import "fmt"
+
 type Record struct {
 	values []interface{}
 	keys   []string
@@ -15,10 +17,18 @@ func recordNew(values []interface{}, keys []string) *Record {
 }
 
 func (r *Record) Keys() []string {
+	if r == nil {
+		return nil
+	}
+
 	return r.keys
 }
 
 func (r *Record) Values() []interface{} {
+	if r == nil {
+		return nil
+	}
+
 	return r.values
 }
 
@@ -32,10 +42,14 @@ func (r *Record) Get(key string) (interface{}, bool) {
 	return nil, false
 }
 
-func (r *Record) GetByIndex(index int) interface{} {
-	if index < len(r.values) {
-		return r.values[index]
-	} else {
-		return nil
+func (r *Record) GetByIndex(index int) (interface{}, error) {
+	if r == nil {
+		return nil, fmt.Errorf("record is nil: %w", ErrRecordNoValue)
 	}
+
+	if index >= len(r.values) || index < 0 {
+		return nil, ErrRecordNoValue
+	}
+
+	return r.values[index], nil
 }
