@@ -532,7 +532,7 @@ func TestUDFLoad(t *testing.T) {
 	defer db.Conn.Close()
 
 	// Flush any existing UDFs
-	db.UDFFlush()
+	_ = db.UDFFlush()
 
 	// Load a simple UDF
 	library := "TestLib"

@@ -170,7 +170,7 @@ func ExampleFalkorDB_UDFLoad() {
 	result.Next()
 	r := result.Record()
 	val, _ := r.GetByIndex(0)
-	fmt.Println(val) // Output: hElLo
+	fmt.Println(val) // Expected: hElLo (characters at odd indices are uppercase)
 
 	// Delete the UDF library
 	err = db.UDFDelete(library)
