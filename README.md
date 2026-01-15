@@ -113,6 +113,41 @@ options := NewQueryOptions().SetTimeout(10) // 10-millisecond timeout
 res, err := graph.Query("MATCH (src {name: 'John Doe'})-[*]->(dest) RETURN dest", nil, options)
 ```
 
+## User Defined Functions (UDFs)
+
+FalkorDB supports User Defined Functions written in JavaScript. The `falkordb-go` client provides methods to manage UDF libraries:
+
+```go
+db, _ := falkordb.FalkorDBNew(&falkordb.ConnectionOption{Addr: "0.0.0.0:6379"})
+
+// Define a UDF library
+library := "StringUtils"
+source := `
+	function UpperCaseOdd(s) {
+		return s.split('').map((char, i) => (i % 2 !== 0 ? char.toUpperCase() : char)).join('');
+	}
+	falkor.register('UpperCaseOdd', UpperCaseOdd);
+`
+
+// Load the UDF library
+err := db.UDFLoad(library, source)
+
+// List all loaded UDF libraries
+udfs, err := db.UDFList()
+
+// Use the UDF in a query
+graph := db.SelectGraph("demo")
+result, _ := graph.Query("RETURN StringUtils.UpperCaseOdd('hello')", nil, nil)
+
+// Delete a specific UDF library
+err = db.UDFDelete(library)
+
+// Or flush all UDF libraries
+err = db.UDFFlush()
+```
+
+For more information on UDFs, see the [FalkorDB UDF documentation](https://docs.falkordb.com/udfs/).
+
 ## Running tests
 
 A simple test suite is provided, and can be run with:
