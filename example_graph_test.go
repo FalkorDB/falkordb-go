@@ -134,3 +134,53 @@ func getTLSdetails() (tlsready bool, tls_cert string, tls_key string, tls_cacert
 	tlsready = true
 	return
 }
+
+func ExampleFalkorDB_UDFLoad() {
+	db, _ := falkordb.FalkorDBNew(&falkordb.ConnectionOption{Addr: "0.0.0.0:6379"})
+	defer db.Conn.Close()
+
+	// Define a simple UDF library
+	library := "StringUtils"
+	source := `
+		function UpperCaseOdd(s) {
+			return s.split('').map((char, i) => (i % 2 !== 0 ? char.toUpperCase() : char)).join('');
+		}
+		falkor.register('UpperCaseOdd', UpperCaseOdd);
+	`
+
+	// Load the UDF library
+	err := db.UDFLoad(library, source)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	// List all loaded UDF libraries
+	udfs, err := db.UDFList()
+	if err != nil {
+		log.Fatal(err)
+	}
+	fmt.Printf("Loaded UDFs: %v\n", udfs)
+
+	// Use the UDF in a query
+	graph := db.SelectGraph("demo")
+	result, err := graph.Query("RETURN StringUtils.UpperCaseOdd('hello')", nil, nil)
+	if err != nil {
+		log.Fatal(err)
+	}
+	result.Next()
+	r := result.Record()
+	val, _ := r.GetByIndex(0)
+	fmt.Println(val) // Output: hElLo
+
+	// Delete the UDF library
+	err = db.UDFDelete(library)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	// Or flush all UDF libraries
+	err = db.UDFFlush()
+	if err != nil {
+		log.Fatal(err)
+	}
+}
