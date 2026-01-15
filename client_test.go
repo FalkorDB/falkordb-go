@@ -526,3 +526,36 @@ func TestTimeout(t *testing.T) {
 	assert.Nil(t, res)
 	assert.NotNil(t, err)
 }
+
+func TestUDFLoad(t *testing.T) {
+	db, _ := FromURL("falkor://0.0.0.0:6379")
+	defer db.Conn.Close()
+
+	// Flush any existing UDFs
+	_ = db.UDFFlush()
+
+	// Load a simple UDF
+	library := "TestLib"
+	source := `
+		function TestFunc(x) {
+			return x * 2;
+		}
+		falkor.register('TestFunc', TestFunc);
+	`
+
+	err := db.UDFLoad(library, source)
+	assert.Nil(t, err, "UDF load should succeed")
+
+	// List UDFs to verify it was loaded
+	udfs, err := db.UDFList()
+	assert.Nil(t, err, "UDF list should succeed")
+	assert.NotNil(t, udfs, "UDF list should return data")
+
+	// Delete the UDF
+	err = db.UDFDelete(library)
+	assert.Nil(t, err, "UDF delete should succeed")
+
+	// Flush all UDFs
+	err = db.UDFFlush()
+	assert.Nil(t, err, "UDF flush should succeed")
+}
