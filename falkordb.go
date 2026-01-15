@@ -127,3 +127,27 @@ func (db *FalkorDB) ConfigGet(key string) (interface{}, error) {
 func (db *FalkorDB) ConfigSet(key string, value interface{}) error {
 	return db.Conn.Do(ctx, "GRAPH.CONFIG", "SET", key, value).Err()
 }
+
+// Load a UDF library into the database.
+// See: https://docs.falkordb.com/udfs/
+func (db *FalkorDB) UDFLoad(library string, source string) error {
+	return db.Conn.Do(ctx, "GRAPH.UDF", "LOAD", library, source).Err()
+}
+
+// List all loaded UDF libraries.
+// See: https://docs.falkordb.com/udfs/
+func (db *FalkorDB) UDFList() (interface{}, error) {
+	return db.Conn.Do(ctx, "GRAPH.UDF", "LIST").Result()
+}
+
+// Delete a specific UDF library by name.
+// See: https://docs.falkordb.com/udfs/
+func (db *FalkorDB) UDFDelete(library string) error {
+	return db.Conn.Do(ctx, "GRAPH.UDF", "DELETE", library).Err()
+}
+
+// Flush all loaded UDF libraries.
+// See: https://docs.falkordb.com/udfs/
+func (db *FalkorDB) UDFFlush() error {
+	return db.Conn.Do(ctx, "GRAPH.UDF", "FLUSH").Err()
+}
