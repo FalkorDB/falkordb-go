@@ -135,6 +135,8 @@ func (db *FalkorDB) UDFLoad(library string, source string) error {
 }
 
 // List all loaded UDF libraries.
+// Returns a nested list where each element contains a library name followed by a list of function names.
+// Example return format: [[library1, [func1, func2]], [library2, [func3, func4]]]
 // See: https://docs.falkordb.com/udfs/
 func (db *FalkorDB) UDFList() (interface{}, error) {
 	return db.Conn.Do(ctx, "GRAPH.UDF", "LIST").Result()
