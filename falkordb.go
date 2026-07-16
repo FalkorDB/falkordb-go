@@ -96,6 +96,7 @@ func FalkorDBNew(options *ConnectionOption) (*FalkorDB, error) {
 
 // FalkorDBNewCluster creates a new FalkorDB cluster instance.
 func FalkorDBNewCluster(options *ConnectionClusterOption) (*FalkorDB, error) {
+	applyDefaultTimeouts(&options.ReadTimeout, &options.WriteTimeout)
 	db := redis.NewClusterClient(options)
 	return &FalkorDB{Conn: db}, nil
 }
@@ -112,6 +113,7 @@ func FromURL(url string) (*FalkorDB, error) {
 	if err != nil {
 		return nil, err
 	}
+	applyDefaultTimeouts(&options.ReadTimeout, &options.WriteTimeout)
 	db := redis.NewClient(options)
 	if isSentinel(db) {
 		masters, err := db.Do(ctx, "SENTINEL", "MASTERS").Result()
@@ -125,6 +127,8 @@ func FromURL(url string) (*FalkorDB, error) {
 		db = redis.NewFailoverClient(&redis.FailoverOptions{
 			MasterName:    masterName,
 			SentinelAddrs: []string{options.Addr},
+			ReadTimeout:   options.ReadTimeout,
+			WriteTimeout:  options.WriteTimeout,
 		})
 	}
 	return &FalkorDB{Conn: db}, nil
