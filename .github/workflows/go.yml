@@ -17,7 +17,10 @@ jobs:
     runs-on: ubuntu-latest
     services:
       falkordb:
-        image: falkordb/falkordb:edge
+        # The officially released server. PRs and pushes gate on the version users actually run;
+        # the moving `edge` tag is exercised daily by version-canary.yml instead, where a server-side
+        # change cannot block a merge.
+        image: falkordb/falkordb:latest
         ports:
           - 6379:6379
     steps:
