@@ -172,3 +172,30 @@ func TestQueryParamCannotInjectCypher(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, int64(0), created, "no node may be created by a parameter value")
 }
+
+// A malformed response must produce an error rather than panic the caller.
+func TestMalformedResponsesReportErrors(t *testing.T) {
+	stats := []interface{}{"Cached execution: 0"}
+	header := []interface{}{[]interface{}{int64(COLUMN_SCALAR), "n"}}
+
+	tests := map[string]interface{}{
+		"statistics not a list":   []interface{}{"nope"},
+		"statistic not a string":  []interface{}{[]interface{}{int64(1)}},
+		"statistic without colon": []interface{}{[]interface{}{"no separator"}},
+		"header not a list":       []interface{}{"nope", []interface{}{}, stats},
+		"header column not list":  []interface{}{[]interface{}{"nope"}, []interface{}{}, stats},
+		"header column too short": []interface{}{[]interface{}{[]interface{}{int64(1)}}, []interface{}{}, stats},
+		"header type not int":     []interface{}{[]interface{}{[]interface{}{"x", "n"}}, []interface{}{}, stats},
+		"header name not string":  []interface{}{[]interface{}{[]interface{}{int64(1), int64(2)}}, []interface{}{}, stats},
+		"trailing stats bad":      []interface{}{header, []interface{}{}, "nope"},
+	}
+
+	for name, response := range tests {
+		t.Run(name, func(t *testing.T) {
+			require.NotPanics(t, func() {
+				_, err := QueryResultNew(graph, response)
+				assert.Error(t, err)
+			})
+		})
+	}
+}

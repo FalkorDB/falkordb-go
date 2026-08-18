@@ -196,3 +196,18 @@ func TestCyclicValuesAreRejected(t *testing.T) {
 
 	assert.NotPanics(t, func() { ToString(m) })
 }
+
+// FalkorDB strings are UTF-8 text, so a Go string holding invalid UTF-8 must be
+// rejected on the same terms as a []byte rather than stored incorrectly.
+func TestInvalidUTF8Rejected(t *testing.T) {
+	for name, v := range map[string]interface{}{
+		"string": "a\xffb",
+		"bytes":  []byte{0xff, 0xfe},
+	} {
+		_, err := toString(v)
+		assert.ErrorIsf(t, err, ErrUnsupportedType, "%s must be rejected", name)
+	}
+
+	// The fallback in ToString must cope with it too.
+	assert.NotPanics(t, func() { ToString("a\xffb") })
+}

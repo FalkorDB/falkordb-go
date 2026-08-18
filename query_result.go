@@ -88,7 +88,9 @@ func QueryResultNew(g *Graph, response interface{}) (*QueryResult, error) {
 	}
 
 	if len(r) == 1 {
-		qr.parseStatistics(r[0])
+		if err := qr.parseStatistics(r[0]); err != nil {
+			return nil, err
+		}
 	} else {
 		if len(r) < 3 {
 			return nil, fmt.Errorf("malformed response: expected 3 elements, got %d", len(r))
@@ -96,7 +98,9 @@ func QueryResultNew(g *Graph, response interface{}) (*QueryResult, error) {
 		if err := qr.parseResults(r); err != nil {
 			return nil, err
 		}
-		qr.parseStatistics(r[2])
+		if err := qr.parseStatistics(r[2]); err != nil {
+			return nil, err
+		}
 	}
 
 	return qr, nil
@@ -107,33 +111,63 @@ func (qr *QueryResult) Empty() bool {
 }
 
 func (qr *QueryResult) parseResults(raw_result_set []interface{}) error {
-	header := raw_result_set[0]
-	qr.parseHeader(header)
+	if err := qr.parseHeader(raw_result_set[0]); err != nil {
+		return err
+	}
 	return qr.parseRecords(raw_result_set)
 }
 
-func (qr *QueryResult) parseStatistics(raw_statistics interface{}) {
-	statistics := raw_statistics.([]interface{})
+func (qr *QueryResult) parseStatistics(raw_statistics interface{}) error {
+	statistics, ok := raw_statistics.([]interface{})
+	if !ok {
+		return fmt.Errorf("malformed statistics: unexpected type %T", raw_statistics)
+	}
 	qr.statistics = make(map[string]float64)
 
 	for _, rs := range statistics {
-		v := strings.Split(rs.(string), ": ")
-		f, _ := strconv.ParseFloat(strings.Split(v[1], " ")[0], 64)
-		qr.statistics[v[0]] = f
+		stat, ok := rs.(string)
+		if !ok {
+			return fmt.Errorf("malformed statistic: unexpected type %T", rs)
+		}
+		// Statistics arrive as "Nodes created: 1" or
+		// "Query internal execution time: 0.1 milliseconds".
+		name, value, found := strings.Cut(stat, ": ")
+		if !found {
+			return fmt.Errorf("malformed statistic %q: expected \"name: value\"", stat)
+		}
+		f, _ := strconv.ParseFloat(strings.Split(value, " ")[0], 64)
+		qr.statistics[name] = f
 	}
+	return nil
 }
 
-func (qr *QueryResult) parseHeader(raw_header interface{}) {
-	header := raw_header.([]interface{})
+func (qr *QueryResult) parseHeader(raw_header interface{}) error {
+	header, ok := raw_header.([]interface{})
+	if !ok {
+		return fmt.Errorf("malformed header: unexpected type %T", raw_header)
+	}
 
 	for _, col := range header {
-		c := col.([]interface{})
-		ct := c[0].(int64)
-		cn := c[1].(string)
+		c, ok := col.([]interface{})
+		if !ok {
+			return fmt.Errorf("malformed header column: unexpected type %T", col)
+		}
+		if len(c) < 2 {
+			return fmt.Errorf("malformed header column: expected 2 elements, got %d", len(c))
+		}
+		ct, ok := c[0].(int64)
+		if !ok {
+			return fmt.Errorf("malformed header column type: unexpected type %T", c[0])
+		}
+		cn, ok := c[1].(string)
+		if !ok {
+			return fmt.Errorf("malformed header column name: unexpected type %T", c[1])
+		}
 
 		qr.header.column_types = append(qr.header.column_types, ResultSetColumnTypes(ct))
 		qr.header.column_names = append(qr.header.column_names, cn)
 	}
+	return nil
 }
 
 func (qr *QueryResult) parseRecords(raw_result_set []interface{}) error {

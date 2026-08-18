@@ -25,6 +25,13 @@ const maxNestingDepth = 100
 // are emitted and every other byte, including all multi-byte UTF-8, is passed
 // through verbatim.
 func quoteCypherString(s string) (string, error) {
+	// FalkorDB strings are UTF-8 text, so invalid input has to be rejected
+	// rather than passed through to be stored incorrectly. []byte is routed
+	// here too, so both follow the same rule.
+	if !utf8.ValidString(s) {
+		return "", fmt.Errorf("%w: string is not valid UTF-8", ErrUnsupportedType)
+	}
+
 	var b strings.Builder
 	b.Grow(len(s) + 2)
 	b.WriteByte('"')
@@ -128,9 +135,6 @@ func toStringDepth(i interface{}, depth int) (string, error) {
 	case bool:
 		return strconv.FormatBool(v), nil
 	case []byte:
-		if !utf8.Valid(v) {
-			return "", fmt.Errorf("%w: []byte is not valid UTF-8, FalkorDB strings cannot carry arbitrary binary", ErrUnsupportedType)
-		}
 		return quoteCypherString(string(v))
 	case time.Time:
 		return quoteCypherString(v.Format(time.RFC3339Nano))

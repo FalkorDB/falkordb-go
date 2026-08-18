@@ -130,9 +130,10 @@ of seconds, matching FalkorDB's second-granularity `DURATION` type.
 
 Parameter names must be plain Cypher identifiers, and map keys are back-quoted, so
 neither can inject Cypher into the query. Because FalkorDB strings are UTF-8 text,
-a `[]byte` must hold valid UTF-8 and no value may contain a NUL byte; anything else
-is rejected rather than silently corrupted. Integers above `math.MaxInt64` are
-rejected too, since the server would otherwise saturate them without an error.
+strings and `[]byte` must hold valid UTF-8 and no value may contain a NUL byte;
+anything else is rejected rather than silently corrupted. Integers above
+`math.MaxInt64` are rejected too, since the server would otherwise saturate them
+without an error.
 
 ## Temporal values
 
