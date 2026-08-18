@@ -509,7 +509,7 @@ func TestNodeMapDatatype(t *testing.T) {
 }
 
 func TestTimeout(t *testing.T) {
-	// Instantiate a new QueryOptions struct with a 1-second timeout
+	// Instantiate a new QueryOptions struct with a 1-millisecond timeout.
 	options := NewQueryOptions().SetTimeout(1)
 
 	// Verify that the timeout was set properly
@@ -518,13 +518,13 @@ func TestTimeout(t *testing.T) {
 	// Issue a long-running query with a 1-millisecond timeout.
 	res, err := graph.Query("UNWIND range(0, 1000000) AS v WITH v WHERE v % 2 = 1 RETURN COUNT(v)", nil, options)
 	assert.Nil(t, res)
-	assert.NotNil(t, err)
+	assert.Error(t, err)
 
 	params := make(map[string]interface{})
 	params["ub"] = 1000000
-	res, err = graph.Query("UNWIND range(0, $ub) AS v RETURN v", params, options)
+	res, err = graph.Query("UNWIND range(0, $ub) AS v WITH v WHERE v % 2 = 1 RETURN COUNT(v)", params, options)
 	assert.Nil(t, res)
-	assert.NotNil(t, err)
+	assert.Error(t, err)
 }
 
 func TestUDFLoad(t *testing.T) {
