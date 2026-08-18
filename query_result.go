@@ -6,6 +6,7 @@ import (
 	"os"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/olekukonko/tablewriter"
 	"github.com/olekukonko/tablewriter/tw"
@@ -49,6 +50,10 @@ const (
 	VALUE_MAP
 	VALUE_POINT
 	VALUE_VECTORF32
+	VALUE_DATETIME
+	VALUE_DATE
+	VALUE_TIME
+	VALUE_DURATION
 )
 
 type QueryResultHeader struct {
@@ -77,12 +82,20 @@ func QueryResultNew(g *Graph, response interface{}) (*QueryResult, error) {
 		currentRecordIdx: -1,
 	}
 
-	r := response.([]interface{})
+	r, ok := response.([]interface{})
+	if !ok {
+		return nil, fmt.Errorf("unexpected response type %T", response)
+	}
 
 	if len(r) == 1 {
 		qr.parseStatistics(r[0])
 	} else {
-		qr.parseResults(r)
+		if len(r) < 3 {
+			return nil, fmt.Errorf("malformed response: expected 3 elements, got %d", len(r))
+		}
+		if err := qr.parseResults(r); err != nil {
+			return nil, err
+		}
 		qr.parseStatistics(r[2])
 	}
 
@@ -93,10 +106,10 @@ func (qr *QueryResult) Empty() bool {
 	return len(qr.results) == 0
 }
 
-func (qr *QueryResult) parseResults(raw_result_set []interface{}) {
+func (qr *QueryResult) parseResults(raw_result_set []interface{}) error {
 	header := raw_result_set[0]
 	qr.parseHeader(header)
-	qr.parseRecords(raw_result_set)
+	return qr.parseRecords(raw_result_set)
 }
 
 func (qr *QueryResult) parseStatistics(raw_statistics interface{}) {
@@ -302,6 +315,16 @@ func (qr *QueryResult) parseVectorF32(cell interface{}) ([]float32, error) {
 	return res, nil
 }
 
+// parseTemporal decodes a DATETIME, DATE or TIME value. FalkorDB encodes all
+// three as seconds since the Unix epoch.
+func (qr *QueryResult) parseTemporal(cell interface{}) (time.Time, error) {
+	seconds, ok := cell.(int64)
+	if !ok {
+		return time.Time{}, fmt.Errorf("unexpected temporal value type %T", cell)
+	}
+	return time.Unix(seconds, 0).UTC(), nil
+}
+
 func (qr *QueryResult) parseScalar(cell []interface{}) (interface{}, error) {
 	t := cell[0].(int64)
 	v := cell[1]
@@ -342,11 +365,21 @@ func (qr *QueryResult) parseScalar(cell []interface{}) (interface{}, error) {
 	case VALUE_VECTORF32:
 		return qr.parseVectorF32(v)
 
+	case VALUE_DATETIME, VALUE_DATE, VALUE_TIME:
+		return qr.parseTemporal(v)
+
+	case VALUE_DURATION:
+		seconds, ok := v.(int64)
+		if !ok {
+			return nil, fmt.Errorf("unexpected duration value type %T", v)
+		}
+		return time.Duration(seconds) * time.Second, nil
+
 	case VALUE_UNKNOWN:
 		return nil, errors.New("unknown scalar type")
 	}
 
-	return nil, errors.New("unknown scalar type")
+	return nil, fmt.Errorf("unknown scalar type %d", t)
 }
 
 func (qr *QueryResult) getStat(stat string) float64 {

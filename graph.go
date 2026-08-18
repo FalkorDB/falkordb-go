@@ -63,7 +63,11 @@ func (options *QueryOptions) GetTimeout() int {
 
 func (g *Graph) query(command string, query string, params map[string]interface{}, options *QueryOptions) (*QueryResult, error) {
 	if params != nil {
-		query = BuildParamsHeader(params) + query
+		header, err := buildParamsHeader(params)
+		if err != nil {
+			return nil, err
+		}
+		query = header + query
 	}
 	var r interface{}
 	var err error
@@ -96,8 +100,12 @@ func (g *Graph) CallProcedure(procedure string, yield []string, args ...interfac
 	query := fmt.Sprintf("CALL %s(", procedure)
 
 	tmp := make([]string, 0, len(args))
-	for arg := range args {
-		tmp = append(tmp, ToString(arg))
+	for _, arg := range args {
+		s, err := toString(arg)
+		if err != nil {
+			return nil, err
+		}
+		tmp = append(tmp, s)
 	}
 	query += fmt.Sprintf("%s)", strings.Join(tmp, ","))
 

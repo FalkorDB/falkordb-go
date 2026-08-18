@@ -67,7 +67,10 @@ func main() {
 		r := result.Record()
 
 		// Entries in the Record can be accessed by index or key.
-		pName := r.GetByIndex(0)
+		pName, err := r.GetByIndex(0)
+		if err != nil {
+			log.Fatal(err)
+		}
 		fmt.Printf("\nName: %s\n", pName)
 		pAge, _ := r.Get("p.age")
 		fmt.Printf("\nAge: %d\n", pAge)
@@ -79,10 +82,14 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	fmt.Println("Pathes of persons visiting countries:")
+	fmt.Println("Paths of persons visiting countries:")
 	for result.Next() {
 		r := result.Record()
-		p, ok := r.GetByIndex(0).(falkordb.Path)
+		v, err := r.GetByIndex(0)
+		if err != nil {
+			log.Fatal(err)
+		}
+		p, ok := v.(falkordb.Path)
 		fmt.Printf("%s %v\n", p, ok)
 	}
 }
@@ -102,6 +109,45 @@ Query internal execution time 1.623063
 Name: John Doe
 
 Age: 33
+```
+
+## Query parameters
+
+Pass parameters as a map rather than interpolating values into the query string:
+
+```go
+params := map[string]interface{}{"name": "John Doe", "minAge": 18}
+res, err := graph.Query("MATCH (p:Person {name: $name}) WHERE p.age > $minAge RETURN p", params, nil)
+```
+
+Supported parameter types are `nil`, strings, `[]byte`, booleans, every signed and
+unsigned integer type, `float32`, `float64`, `time.Time`, `time.Duration`, slices
+and arrays of any supported type, and maps with string keys. Values that cannot be
+represented are reported as an error wrapping `falkordb.ErrUnsupportedType`.
+
+A `time.Time` is sent as an RFC 3339 string and a `time.Duration` as a whole number
+of seconds, matching FalkorDB's second-granularity `DURATION` type.
+
+Parameter names must be plain Cypher identifiers, and map keys are back-quoted, so
+neither can inject Cypher into the query. Because FalkorDB strings are UTF-8 text,
+a `[]byte` must hold valid UTF-8 and no value may contain a NUL byte; anything else
+is rejected rather than silently corrupted. Integers above `math.MaxInt64` are
+rejected too, since the server would otherwise saturate them without an error.
+
+## Temporal values
+
+FalkorDB's `date()`, `localtime()`, `localdatetime()` and `duration()` values are
+decoded into native Go types — `time.Time` for the first three and `time.Duration`
+for the last:
+
+```go
+res, _ := graph.Query("RETURN date(), duration({days: 2})", nil, nil)
+for res.Next() {
+	values := res.Record().Values()
+	day := values[0].(time.Time)
+	span := values[1].(time.Duration)
+	fmt.Println(day, span)
+}
 ```
 
 ## Running queries with timeouts
