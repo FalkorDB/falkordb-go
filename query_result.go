@@ -1,6 +1,7 @@
 package falkordb
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"os"
@@ -63,6 +64,9 @@ type QueryResultHeader struct {
 
 // QueryResult represents the results of a query.
 type QueryResult struct {
+	// ctx scopes the schema-refresh round trips issued while decoding this
+	// response. It is request scoped and used only during construction.
+	ctx              context.Context
 	graph            *Graph
 	header           QueryResultHeader
 	results          []*Record
@@ -70,8 +74,14 @@ type QueryResult struct {
 	currentRecordIdx int
 }
 
+// QueryResultNew decodes a raw compact-protocol response into a QueryResult.
 func QueryResultNew(g *Graph, response interface{}) (*QueryResult, error) {
+	return queryResultNew(context.Background(), g, response)
+}
+
+func queryResultNew(ctx context.Context, g *Graph, response interface{}) (*QueryResult, error) {
 	qr := &QueryResult{
+		ctx:        ctx,
 		results:    nil,
 		statistics: nil,
 		header: QueryResultHeader{
@@ -214,7 +224,7 @@ func (qr *QueryResult) parseProperties(props []interface{}) (map[string]interfac
 	for _, prop := range props {
 		p := prop.([]interface{})
 		idx := p[0].(int64)
-		prop_name, err := qr.graph.schema.getProperty(int(idx))
+		prop_name, err := qr.graph.schema.getProperty(qr.ctx, int(idx))
 		if err != nil {
 			return nil, err
 		}
@@ -238,7 +248,7 @@ func (qr *QueryResult) parseNode(cell interface{}) (*Node, error) {
 	labelIds := c[1].([]interface{})
 	labels := make([]string, len(labelIds))
 	for i := 0; i < len(labelIds); i++ {
-		label, err := qr.graph.schema.getLabel(int(labelIds[i].(int64)))
+		label, err := qr.graph.schema.getLabel(qr.ctx, int(labelIds[i].(int64)))
 		if err != nil {
 			return nil, err
 		}
@@ -266,7 +276,7 @@ func (qr *QueryResult) parseEdge(cell interface{}) (*Edge, error) {
 	c := cell.([]interface{})
 	id := c[0].(int64)
 	r := c[1].(int64)
-	relation, err := qr.graph.schema.getRelation(int(r))
+	relation, err := qr.graph.schema.getRelation(qr.ctx, int(r))
 	if err != nil {
 		return nil, err
 	}

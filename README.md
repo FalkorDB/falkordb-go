@@ -160,6 +160,39 @@ options := NewQueryOptions().SetTimeout(10) // 10-millisecond timeout
 res, err := graph.Query("MATCH (src {name: 'John Doe'})-[*]->(dest) RETURN dest", nil, options)
 ```
 
+## Cancellation with context.Context
+
+Every command has a `Context` variant that accepts a `context.Context`, so queries
+can participate in request cancellation and deadlines:
+
+```go
+ctx, cancel := context.WithTimeout(context.Background(), 500*time.Millisecond)
+defer cancel()
+
+res, err := graph.QueryContext(ctx, "MATCH (n) RETURN n", nil, nil)
+if errors.Is(err, context.DeadlineExceeded) {
+    // the client stopped waiting
+}
+```
+
+The available variants are `QueryContext`, `ROQueryContext`,
+`ExecutionPlanContext`, `CallProcedureContext` and `DeleteContext` on `Graph`,
+and `ListGraphsContext`, `ConfigGetContext`, `ConfigSetContext`,
+`UDFLoadContext`, `UDFListContext`, `UDFDeleteContext` and `UDFFlushContext` on
+`FalkorDB`. `FalkorDBNewContext` and `FromURLContext` scope the connection
+handshake. The non-context methods are unchanged and use `context.Background()`.
+
+Canceling a context aborts the client-side wait. It does not stop a query that
+the server has already started, so combine it with `QueryOptions.SetTimeout` to
+bound server-side execution as well:
+
+```go
+res, err := graph.QueryContext(ctx, query, nil, NewQueryOptions().SetTimeout(500))
+```
+
+A `*Graph` is safe for concurrent use by multiple goroutines, so a single
+instance can be shared across request handlers.
+
 ## User Defined Functions (UDFs)
 
 FalkorDB supports User Defined Functions written in JavaScript. The `falkordb-go` client provides methods to manage UDF libraries:
