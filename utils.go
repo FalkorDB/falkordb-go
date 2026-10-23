@@ -64,7 +64,7 @@ func ToString(i interface{}) string {
 		arr := i.([]string)
 		return strArrayToString(arr)
 	default:
-		n, err := normalize(i)
+		n, err := normalize(i, 0)
 		if err != nil {
 			panic(err)
 		}

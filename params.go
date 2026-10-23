@@ -7,11 +7,17 @@ import (
 	"strconv"
 )
 
+// maxParamDepth caps how deep normalize recurses, so cyclic values return an error instead of overflowing the stack
+const maxParamDepth = 1000
+
 // normalize converts a Go value into one of the types ToString handles:
 // nil, bool, int64, float64, string, []interface{} or map[string]interface{}.
-func normalize(i interface{}) (interface{}, error) {
+func normalize(i interface{}, depth int) (interface{}, error) {
 	if i == nil {
 		return nil, nil
+	}
+	if depth > maxParamDepth {
+		return nil, fmt.Errorf("value nested more than %d levels deep, possibly a cycle", maxParamDepth)
 	}
 
 	v := reflect.ValueOf(i)
@@ -41,7 +47,7 @@ func normalize(i interface{}) (interface{}, error) {
 	case reflect.Slice, reflect.Array:
 		arr := make([]interface{}, v.Len())
 		for j := range arr {
-			n, err := normalize(v.Index(j).Interface())
+			n, err := normalize(v.Index(j).Interface(), depth+1)
 			if err != nil {
 				return nil, err
 			}
@@ -55,7 +61,7 @@ func normalize(i interface{}) (interface{}, error) {
 		data := make(map[string]interface{}, v.Len())
 		iter := v.MapRange()
 		for iter.Next() {
-			n, err := normalize(iter.Value().Interface())
+			n, err := normalize(iter.Value().Interface(), depth+1)
 			if err != nil {
 				return nil, err
 			}
@@ -66,7 +72,7 @@ func normalize(i interface{}) (interface{}, error) {
 		if v.IsNil() {
 			return nil, nil
 		}
-		return normalize(v.Elem().Interface())
+		return normalize(v.Elem().Interface(), depth+1)
 	default:
 		return nil, fmt.Errorf("unsupported type %T", i)
 	}
@@ -76,7 +82,7 @@ func normalize(i interface{}) (interface{}, error) {
 func buildParamsHeader(params map[string]interface{}) (string, error) {
 	header := "CYPHER "
 	for key, value := range params {
-		n, err := normalize(value)
+		n, err := normalize(value, 0)
 		if err != nil {
 			return "", fmt.Errorf("param %q: %w", key, err)
 		}

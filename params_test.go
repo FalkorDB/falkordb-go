@@ -11,6 +11,8 @@ type namedString string
 
 func TestParamTypes(t *testing.T) {
 	createGraph()
+	five := 5
+	var nilPtr *int
 	cases := []struct {
 		param    interface{}
 		expected interface{}
@@ -24,6 +26,9 @@ func TestParamTypes(t *testing.T) {
 		{namedString("bob"), "bob"},
 		{map[string]string{"k": "v"}, map[string]interface{}{"k": "v"}},
 		{[]interface{}{int32(1)}, []interface{}{int64(1)}},
+		{&five, int64(5)},
+		{nilPtr, nil},
+		{[]interface{}{nil}, []interface{}{nil}},
 	}
 	for _, c := range cases {
 		res, err := graph.Query("RETURN $param", map[string]interface{}{"param": c.param}, nil)
@@ -39,10 +44,14 @@ func TestParamTypes(t *testing.T) {
 
 func TestUnsupportedParamTypeReturnsError(t *testing.T) {
 	createGraph()
-	for _, param := range []interface{}{struct{}{}, uint64(math.MaxUint64), []interface{}{struct{}{}}, math.NaN()} {
+	cyclicMap := map[string]interface{}{}
+	cyclicMap["self"] = cyclicMap
+	cyclicSlice := []interface{}{nil}
+	cyclicSlice[0] = cyclicSlice
+	for _, param := range []interface{}{struct{}{}, uint64(math.MaxUint64), []interface{}{struct{}{}}, math.NaN(), map[int]int{1: 2}, cyclicMap, cyclicSlice} {
 		assert.NotPanics(t, func() {
 			_, err := graph.Query("RETURN $param", map[string]interface{}{"param": param}, nil)
-			assert.ErrorContains(t, err, "param", "param %T", param)
+			assert.ErrorContains(t, err, `param "param"`, "param %T", param)
 		})
 	}
 }
