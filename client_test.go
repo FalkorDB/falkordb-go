@@ -447,6 +447,16 @@ func TestFloatParamKeepsType(t *testing.T) {
 	}
 }
 
+func TestNonFiniteFloatParamReturnsError(t *testing.T) {
+	createGraph()
+	for _, param := range []float64{math.NaN(), math.Inf(1), math.Inf(-1)} {
+		assert.NotPanics(t, func() {
+			_, err := graph.Query("RETURN $param", map[string]interface{}{"param": param}, nil)
+			assert.Error(t, err)
+		})
+	}
+}
+
 func TestUtils(t *testing.T) {
 	res := RandomString(10)
 	assert.Equal(t, len(res), 10)
@@ -472,8 +482,11 @@ func TestUtils(t *testing.T) {
 	res = ToString([]interface{}{1.0, 2.5})
 	assert.Equal(t, res, "[1.0,2.5]")
 
-	assert.Panics(t, func() { ToString(math.NaN()) })
-	assert.Panics(t, func() { ToString(math.Inf(1)) })
+	res = ToString(math.NaN())
+	assert.Equal(t, res, "NaN")
+
+	res = ToString(math.Inf(-1))
+	assert.Equal(t, res, "-Inf")
 
 	res = ToString(true)
 	assert.Equal(t, res, "true")

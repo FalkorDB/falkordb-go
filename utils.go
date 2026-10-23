@@ -53,13 +53,10 @@ func ToString(i interface{}) string {
 		return strconv.FormatInt(i.(int64), 10)
 	case float64:
 		f := i.(float64)
-		// Cypher has no literal for NaN or Inf
-		if math.IsNaN(f) || math.IsInf(f, 0) {
-			panic("Cannot convert NaN or Inf to string")
-		}
-		// keep a decimal point or exponent so the server parses a Float, not an Integer
 		s := strconv.FormatFloat(f, 'g', -1, 64)
-		if !strings.ContainsAny(s, ".e") {
+		// keep a decimal point or exponent so the server parses a Float, not an Integer.
+		// NaN and Inf have no Cypher literal and are left as is for the server to reject.
+		if !math.IsNaN(f) && !math.IsInf(f, 0) && !strings.ContainsAny(s, ".e") {
 			s += ".0"
 		}
 		return s
