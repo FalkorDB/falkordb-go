@@ -64,7 +64,11 @@ func ToString(i interface{}) string {
 		arr := i.([]string)
 		return strArrayToString(arr)
 	default:
-		panic("Unrecognized type to convert to string")
+		n, err := normalize(i)
+		if err != nil {
+			panic(err)
+		}
+		return ToString(n)
 	}
 }
 
