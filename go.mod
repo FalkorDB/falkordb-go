@@ -3,7 +3,7 @@ module github.com/FalkorDB/falkordb-go/v2
 go 1.24
 
 require (
-	github.com/olekukonko/tablewriter v1.1.4
+	github.com/olekukonko/tablewriter v1.1.5
 	github.com/redis/go-redis/v9 v9.22.0
 	github.com/stretchr/testify v1.12.1
 )
