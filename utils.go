@@ -24,13 +24,18 @@ func encodeName(name string) (string, error) {
 		return name, nil
 	}
 	if name == "" || strings.ContainsAny(name, "`\x00") {
-		shown := name
-		if len(shown) > maxNameInError {
-			shown = shown[:maxNameInError] + "..."
-		}
-		return "", fmt.Errorf("%w: %q", ErrInvalidName, shown)
+		return "", fmt.Errorf("%w: %s", ErrInvalidName, displayName(name))
 	}
 	return "`" + name + "`", nil
+}
+
+// displayName quotes a caller-supplied name for an error message, truncated to
+// maxNameInError bytes, so it cannot make the error arbitrarily long or multiline.
+func displayName(name string) string {
+	if len(name) > maxNameInError {
+		return strconv.Quote(name[:maxNameInError]) + "..."
+	}
+	return strconv.Quote(name)
 }
 
 // go array to string is [1 2 3] for [1, 2, 3] array
@@ -160,7 +165,7 @@ func buildParamsHeader(params map[string]interface{}) (string, error) {
 		}
 		s, err := toString(value)
 		if err != nil {
-			return "", fmt.Errorf("parameter %s: %w", name, err)
+			return "", fmt.Errorf("parameter %s: %w", displayName(key), err)
 		}
 		header += fmt.Sprintf("%s=%v ", name, s)
 	}

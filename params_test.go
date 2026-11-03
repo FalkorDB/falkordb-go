@@ -101,6 +101,16 @@ func TestInvalidNameErrorIsBounded(t *testing.T) {
 	assert.Less(t, len(err.Error()), 200)
 }
 
+func TestNestedInvalidKeyErrorIsBounded(t *testing.T) {
+	// The outer name is valid (it gets backtick-quoted), but it must still be
+	// bounded and quoted when it is echoed for an invalid key nested under it.
+	name := strings.Repeat("y", 1000) + "\nz"
+	_, err := graph.Query("RETURN 1", map[string]interface{}{name: map[string]interface{}{"`": 1}}, nil)
+	require.ErrorIs(t, err, ErrInvalidName)
+	assert.Less(t, len(err.Error()), 200)
+	assert.NotContains(t, err.Error(), "\n")
+}
+
 func paramInjectionGraph(t *testing.T) *Graph {
 	g := graphNew("param_injection", graph.Conn)
 	g.Delete()
