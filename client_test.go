@@ -455,7 +455,9 @@ func TestUtils(t *testing.T) {
 	jsonMap := make(map[string]interface{})
 	jsonMap["object"] = map[string]interface{}{"foo": 1}
 	res = ToString(jsonMap)
-	assert.Equal(t, res, "{object: {foo: 1}}")
+	// Map keys are back-quoted so that a key cannot close the literal and
+	// append arbitrary Cypher.
+	assert.Equal(t, res, "{`object`: {`foo`: 1}}")
 }
 
 func TestMultiLabelNode(t *testing.T) {
