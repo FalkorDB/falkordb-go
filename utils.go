@@ -3,6 +3,7 @@ package falkordb
 import (
 	"crypto/rand"
 	"fmt"
+	"math"
 	"strconv"
 	"strings"
 )
@@ -51,7 +52,14 @@ func ToString(i interface{}) string {
 	case int64:
 		return strconv.FormatInt(i.(int64), 10)
 	case float64:
-		return strconv.FormatFloat(i.(float64), 'f', -1, 64)
+		f := i.(float64)
+		s := strconv.FormatFloat(f, 'g', -1, 64)
+		// keep a decimal point or exponent so the server parses a Float, not an Integer.
+		// NaN and Inf have no Cypher literal and are left as is for the server to reject.
+		if !math.IsNaN(f) && !math.IsInf(f, 0) && !strings.ContainsAny(s, ".e") {
+			s += ".0"
+		}
+		return s
 	case bool:
 		return strconv.FormatBool(i.(bool))
 	case []interface{}:
