@@ -42,27 +42,54 @@ type fakeHandler func(args []string, resp3 bool) (reply string, ok bool)
 type fakeServer struct {
 	ln      net.Listener
 	handler fakeHandler
+	wg      sync.WaitGroup
 
 	mu       sync.Mutex
 	commands []string
+	conns    map[net.Conn]struct{}
+	closed   bool
 }
 
 func newFakeServer(t *testing.T, handler fakeHandler) *fakeServer {
 	t.Helper()
 	ln, err := net.Listen("tcp", "127.0.0.1:0")
 	require.NoError(t, err)
-	s := &fakeServer{ln: ln, handler: handler}
+	s := &fakeServer{ln: ln, handler: handler, conns: map[net.Conn]struct{}{}}
+	s.wg.Add(1)
 	go func() {
+		defer s.wg.Done()
 		for {
 			conn, err := ln.Accept()
 			if err != nil {
 				return
 			}
+			s.mu.Lock()
+			if s.closed {
+				s.mu.Unlock()
+				conn.Close()
+				return
+			}
+			s.conns[conn] = struct{}{}
+			s.wg.Add(1)
+			s.mu.Unlock()
 			go s.serve(conn)
 		}
 	}()
-	t.Cleanup(func() { ln.Close() })
+	t.Cleanup(s.close)
 	return s
+}
+
+// close stops the server: it closes the listener and every connection still
+// open, and waits for their goroutines to finish.
+func (s *fakeServer) close() {
+	s.mu.Lock()
+	s.closed = true
+	s.ln.Close()
+	for conn := range s.conns {
+		conn.Close()
+	}
+	s.mu.Unlock()
+	s.wg.Wait()
 }
 
 // newFakeInfoServer answers INFO with info and SENTINEL MASTERS with an
@@ -87,8 +114,21 @@ func (s *fakeServer) received() []string {
 	return append([]string(nil), s.commands...)
 }
 
+// openConns returns the number of client connections still open.
+func (s *fakeServer) openConns() int {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	return len(s.conns)
+}
+
 func (s *fakeServer) serve(conn net.Conn) {
-	defer conn.Close()
+	defer s.wg.Done()
+	defer func() {
+		s.mu.Lock()
+		delete(s.conns, conn)
+		s.mu.Unlock()
+		conn.Close()
+	}()
 	r := bufio.NewReader(conn)
 	resp3 := false
 	for {

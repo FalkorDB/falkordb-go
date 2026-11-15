@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -55,6 +56,8 @@ func TestConstructorsReadSentinelMasterName(t *testing.T) {
 				require.NotPanics(t, func() { db, err = connect(s.addr(), protocol) })
 				require.NoError(t, err)
 				defer db.Conn.Close()
+				// The client used to discover the master is closed.
+				assert.Eventually(t, func() bool { return s.openConns() == 0 }, time.Second, 10*time.Millisecond)
 
 				// The failover client resolves the master by the name it was
 				// given; the fake Sentinel records the lookup.
@@ -71,6 +74,7 @@ func TestSentinelMasterCount(t *testing.T) {
 		var err error
 		require.NotPanics(t, func() { _, err = FromURL("falkor://" + s.addr()) })
 		assert.EqualError(t, err, "multiple masters, require service name")
+		assert.Eventually(t, func() bool { return s.openConns() == 0 }, time.Second, 10*time.Millisecond)
 	}
 }
 

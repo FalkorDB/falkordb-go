@@ -35,6 +35,16 @@ func isSentinel(conn redis.UniversalClient) bool {
 	return svr["redis_mode"] == "sentinel"
 }
 
+// querySentinelMasterName asks a Sentinel for the name of the master it
+// monitors.
+func querySentinelMasterName(sentinel *redis.Client) (string, error) {
+	masters, err := sentinel.Do(ctx, "SENTINEL", "MASTERS").Result()
+	if err != nil {
+		return "", err
+	}
+	return sentinelMasterName(masters)
+}
+
 // sentinelMasterName returns the name of the single master in a SENTINEL
 // MASTERS reply. Each master is a map under RESP3, which go-redis decodes as
 // map[interface{}]interface{}, and a flat list of field/value pairs under
@@ -74,11 +84,9 @@ func FalkorDBNew(options *ConnectionOption) (*FalkorDB, error) {
 	db := redis.NewClient(options)
 
 	if isSentinel(db) {
-		masters, err := db.Do(ctx, "SENTINEL", "MASTERS").Result()
-		if err != nil {
-			return nil, err
-		}
-		masterName, err := sentinelMasterName(masters)
+		masterName, err := querySentinelMasterName(db)
+		// The connection to the Sentinel was only needed to find the master.
+		db.Close()
 		if err != nil {
 			return nil, err
 		}
@@ -122,11 +130,9 @@ func FromURL(url string) (*FalkorDB, error) {
 	}
 	db := redis.NewClient(options)
 	if isSentinel(db) {
-		masters, err := db.Do(ctx, "SENTINEL", "MASTERS").Result()
-		if err != nil {
-			return nil, err
-		}
-		masterName, err := sentinelMasterName(masters)
+		masterName, err := querySentinelMasterName(db)
+		// The connection to the Sentinel was only needed to find the master.
+		db.Close()
 		if err != nil {
 			return nil, err
 		}
