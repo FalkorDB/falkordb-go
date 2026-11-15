@@ -31,7 +31,18 @@ func isSentinel(conn redis.UniversalClient) bool {
 	if !ok {
 		return false
 	}
-	return svr["redis_mode"] == "sentinel"
+	return serverMode(svr) == "sentinel"
+}
+
+// serverMode returns the standalone/cluster/sentinel mode from the `server`
+// section of INFO. Redis reports it as `redis_mode`. Valkey reports it as
+// `server_mode` unless `extended-redis-compatibility` is on, which is off by
+// default, so both names are checked.
+func serverMode(server map[string]string) string {
+	if mode, ok := server["redis_mode"]; ok {
+		return mode
+	}
+	return server["server_mode"]
 }
 
 // FalkorDB Class for interacting with a FalkorDB server.
