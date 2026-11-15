@@ -3,6 +3,7 @@ package falkordb
 import (
 	"context"
 	"errors"
+	"fmt"
 	"strings"
 
 	"github.com/redis/go-redis/v9"
@@ -34,21 +35,61 @@ func isSentinel(conn redis.UniversalClient) bool {
 	return svr["redis_mode"] == "sentinel"
 }
 
+// querySentinelMasterName asks a Sentinel for the name of the master it
+// monitors.
+func querySentinelMasterName(sentinel *redis.Client) (string, error) {
+	masters, err := sentinel.Do(ctx, "SENTINEL", "MASTERS").Result()
+	if err != nil {
+		return "", err
+	}
+	return sentinelMasterName(masters)
+}
+
+// sentinelMasterName returns the name of the single master in a SENTINEL
+// MASTERS reply. Each master is a map under RESP3, which go-redis decodes as
+// map[interface{}]interface{}, and a flat list of field/value pairs under
+// RESP2.
+func sentinelMasterName(reply interface{}) (string, error) {
+	masters, ok := reply.([]interface{})
+	if !ok {
+		return "", fmt.Errorf("unexpected SENTINEL MASTERS reply %T", reply)
+	}
+	if len(masters) != 1 {
+		return "", errors.New("multiple masters, require service name")
+	}
+	var name interface{}
+	switch master := masters[0].(type) {
+	case map[interface{}]interface{}:
+		name = master["name"]
+	case map[string]interface{}:
+		name = master["name"]
+	case []interface{}:
+		for i := 0; i+1 < len(master); i += 2 {
+			if master[i] == "name" {
+				name = master[i+1]
+				break
+			}
+		}
+	default:
+		return "", fmt.Errorf("unexpected SENTINEL MASTERS entry %T", masters[0])
+	}
+	if s, ok := name.(string); ok && s != "" {
+		return s, nil
+	}
+	return "", errors.New("SENTINEL MASTERS entry has no master name")
+}
+
 // FalkorDB Class for interacting with a FalkorDB server.
 func FalkorDBNew(options *ConnectionOption) (*FalkorDB, error) {
 	db := redis.NewClient(options)
 
 	if isSentinel(db) {
-		masters, err := db.Do(ctx, "SENTINEL", "MASTERS").Result()
+		masterName, err := querySentinelMasterName(db)
+		// The connection to the Sentinel was only needed to find the master.
+		db.Close()
 		if err != nil {
 			return nil, err
 		}
-		if len(masters.([]interface{})) != 1 {
-			return nil, errors.New("multiple masters, require service name")
-		}
-		str := "name"
-		var strInterface interface{} = str
-		masterName := masters.([]interface{})[0].(map[interface{}]interface{})[strInterface].(string)
 		db = redis.NewFailoverClient(&redis.FailoverOptions{
 			MasterName:       masterName,
 			SentinelAddrs:    []string{options.Addr},
@@ -89,14 +130,12 @@ func FromURL(url string) (*FalkorDB, error) {
 	}
 	db := redis.NewClient(options)
 	if isSentinel(db) {
-		masters, err := db.Do(ctx, "SENTINEL", "MASTERS").Result()
+		masterName, err := querySentinelMasterName(db)
+		// The connection to the Sentinel was only needed to find the master.
+		db.Close()
 		if err != nil {
 			return nil, err
 		}
-		if len(masters.([]interface{})) != 1 {
-			return nil, errors.New("multiple masters, require service name")
-		}
-		masterName := masters.([]interface{})[0].(map[string]interface{})["name"].(string)
 		db = redis.NewFailoverClient(&redis.FailoverOptions{
 			MasterName:    masterName,
 			SentinelAddrs: []string{options.Addr},
