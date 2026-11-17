@@ -2,6 +2,7 @@ package falkordb
 
 import (
 	"fmt"
+	"math"
 	"os"
 	"testing"
 
@@ -432,6 +433,30 @@ func TestQueryStatistics(t *testing.T) {
 	assert.Equal(t, 1, res.RelationshipsDeleted(), "Expecting 1 relationships deleted")
 }
 
+func TestFloatParamKeepsType(t *testing.T) {
+	createGraph()
+	for _, param := range []interface{}{3.0, 0.0, 1e300, []interface{}{1.0}} {
+		res, err := graph.Query("RETURN $param", map[string]interface{}{"param": param}, nil)
+		if !assert.NoError(t, err) {
+			continue
+		}
+		res.Next()
+		rIface, err := res.Record().GetByIndex(0)
+		assert.NoError(t, err)
+		assert.Equal(t, param, rIface, "Unexpected parameter value")
+	}
+}
+
+func TestNonFiniteFloatParamReturnsError(t *testing.T) {
+	createGraph()
+	for _, param := range []float64{math.NaN(), math.Inf(1), math.Inf(-1)} {
+		assert.NotPanics(t, func() {
+			_, err := graph.Query("RETURN $param", map[string]interface{}{"param": param}, nil)
+			assert.Error(t, err)
+		})
+	}
+}
+
 func TestUtils(t *testing.T) {
 	res := RandomString(10)
 	assert.Equal(t, len(res), 10)
@@ -444,6 +469,24 @@ func TestUtils(t *testing.T) {
 
 	res = ToString(1.2)
 	assert.Equal(t, res, "1.2")
+
+	res = ToString(3.0)
+	assert.Equal(t, res, "3.0")
+
+	res = ToString(-2.0)
+	assert.Equal(t, res, "-2.0")
+
+	res = ToString(1e21)
+	assert.Equal(t, res, "1e+21")
+
+	res = ToString([]interface{}{1.0, 2.5})
+	assert.Equal(t, res, "[1.0,2.5]")
+
+	res = ToString(math.NaN())
+	assert.Equal(t, res, "NaN")
+
+	res = ToString(math.Inf(-1))
+	assert.Equal(t, res, "-Inf")
 
 	res = ToString(true)
 	assert.Equal(t, res, "true")
