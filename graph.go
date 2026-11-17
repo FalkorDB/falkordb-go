@@ -63,7 +63,11 @@ func (options *QueryOptions) GetTimeout() int {
 
 func (g *Graph) query(command string, query string, params map[string]interface{}, options *QueryOptions) (*QueryResult, error) {
 	if params != nil {
-		query = BuildParamsHeader(params) + query
+		header, err := buildParamsHeader(params)
+		if err != nil {
+			return nil, err
+		}
+		query = header + query
 	}
 	var r interface{}
 	var err error
