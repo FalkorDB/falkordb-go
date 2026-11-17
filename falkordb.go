@@ -4,11 +4,16 @@ import (
 	"context"
 	"errors"
 	"strings"
+	"time"
 
 	"github.com/redis/go-redis/v9"
 )
 
 var ctx = context.Background()
+
+// noTimeout disables go-redis' client-side read/write deadline (go-redis
+// treats -1 as "no timeout", while 0 silently means the 3 second default).
+const noTimeout = -1
 
 type FalkorDB struct {
 	Conn redis.UniversalClient
@@ -34,8 +39,26 @@ func isSentinel(conn redis.UniversalClient) bool {
 	return svr["redis_mode"] == "sentinel"
 }
 
+// applyDefaultTimeouts disables the client-side read/write deadline when the
+// caller did not set one explicitly. Graph queries routinely exceed go-redis'
+// default 3 second ReadTimeout (bulk loads, deep traversals), which would cut
+// the connection with an i/o timeout - and go-redis then retries the command,
+// re-executing writes - while the server keeps running the query. Query
+// duration is governed by the server's TIMEOUT / TIMEOUT_DEFAULT configuration
+// instead, matching the other FalkorDB clients. Callers can still opt into a
+// deadline by setting ReadTimeout / WriteTimeout explicitly.
+func applyDefaultTimeouts(readTimeout, writeTimeout *time.Duration) {
+	if *readTimeout == 0 {
+		*readTimeout = noTimeout
+	}
+	if *writeTimeout == 0 {
+		*writeTimeout = noTimeout
+	}
+}
+
 // FalkorDB Class for interacting with a FalkorDB server.
 func FalkorDBNew(options *ConnectionOption) (*FalkorDB, error) {
+	applyDefaultTimeouts(&options.ReadTimeout, &options.WriteTimeout)
 	db := redis.NewClient(options)
 
 	if isSentinel(db) {
@@ -64,6 +87,8 @@ func FalkorDBNew(options *ConnectionOption) (*FalkorDB, error) {
 			PoolFIFO:         options.PoolFIFO,
 			PoolSize:         options.PoolSize,
 			PoolTimeout:      options.PoolTimeout,
+			ReadTimeout:      options.ReadTimeout,
+			WriteTimeout:     options.WriteTimeout,
 		})
 	}
 	return &FalkorDB{Conn: db}, nil
@@ -71,6 +96,7 @@ func FalkorDBNew(options *ConnectionOption) (*FalkorDB, error) {
 
 // FalkorDBNewCluster creates a new FalkorDB cluster instance.
 func FalkorDBNewCluster(options *ConnectionClusterOption) (*FalkorDB, error) {
+	applyDefaultTimeouts(&options.ReadTimeout, &options.WriteTimeout)
 	db := redis.NewClusterClient(options)
 	return &FalkorDB{Conn: db}, nil
 }
@@ -87,6 +113,7 @@ func FromURL(url string) (*FalkorDB, error) {
 	if err != nil {
 		return nil, err
 	}
+	applyDefaultTimeouts(&options.ReadTimeout, &options.WriteTimeout)
 	db := redis.NewClient(options)
 	if isSentinel(db) {
 		masters, err := db.Do(ctx, "SENTINEL", "MASTERS").Result()
@@ -100,6 +127,8 @@ func FromURL(url string) (*FalkorDB, error) {
 		db = redis.NewFailoverClient(&redis.FailoverOptions{
 			MasterName:    masterName,
 			SentinelAddrs: []string{options.Addr},
+			ReadTimeout:   options.ReadTimeout,
+			WriteTimeout:  options.WriteTimeout,
 		})
 	}
 	return &FalkorDB{Conn: db}, nil
